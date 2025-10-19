@@ -14,15 +14,16 @@ interface PlayPageProps {
   onNavigate?: (page: string) => void;
 }
 
-const templates = [
-  { name: 'Heart', value: 'heart' },
-  { name: 'Star', value: 'star' },
-  { name: 'Circle', value: 'circle' },
-  { name: 'Daisy', value: 'daisy' },
-  { name: 'Cloud', value: 'cloud' },
-  { name: 'Dog', value: 'dog' },
-  { name: 'Music Note', value: 'musicNote' },
-];
+// Commented out old templates - now using AI generation
+// const templates = [
+//   { name: 'Heart', value: 'heart' },
+//   { name: 'Star', value: 'star' },
+//   { name: 'Circle', value: 'circle' },
+//   { name: 'Daisy', value: 'daisy' },
+//   { name: 'Cloud', value: 'cloud' },
+//   { name: 'Dog', value: 'dog' },
+//   { name: 'Music Note', value: 'musicNote' },
+// ];
 
 export function PlayPage({ onNavigate }: PlayPageProps) {
   const { name, email, setName, setEmail, isFirstTime, setIsFirstTime } = useUser();
@@ -33,6 +34,10 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
   const [lineWidth, setLineWidth] = useState(3);
   const [canvasKey, setCanvasKey] = useState(0);
   const canvasRef = useRef<DrawingCanvasRef>(null);
+  
+  // AI Image generation state
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Custom color picker
   const [customColor, setCustomColor] = useState('#fa9da6');
@@ -54,6 +59,66 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
   const [finalTime, setFinalTime] = useState(0);
   const [projectName, setProjectName] = useState('');
   const [showSaveAs, setShowSaveAs] = useState(false);
+
+  
+  // Congrats message and API key
+  const CONGRATS_MESSAGE = "Wonderful work! Your drawing has been saved. Keep enjoying the creative process!";
+  const ELEVEN_LABS_API_KEY = ""; // TODO: PUT IN API KEY WHEN NEEDED
+  const VOICE_ID = "cgSgspJ2msm6clMCkdW9"; 
+
+
+  const playCongratsMessage = async () => {
+    try {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': ELEVEN_LABS_API_KEY
+        },
+        body: JSON.stringify({
+          text: CONGRATS_MESSAGE,
+          model_id: 'eleven_monolingual_v1',
+          voice_settings: {
+            stability: 0.75,
+            similarity_boost: 0.75
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audio = new Audio(URL.createObjectURL(audioBlob));
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing congratulatory message:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isFirstTime && showSetup) {
+      setShowFirstTimeSetup(true);
+      setTempName(name);
+      setTempEmail(email);
+    }
+  }, []);
+
+  // Updated useEffect for timer with simplified cleanup
+  useEffect(() => {
+    if (isRunning && !isPaused) {
+      timerRef.current = window.setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isRunning, isPaused]);
 
   useEffect(() => {
     if (isFirstTime && showSetup) {
@@ -87,6 +152,37 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const generateImage = async (prompt: string) => {
+    setIsGenerating(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      const response = await fetch(`${apiUrl}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      // Backend returns { id: 'img_123', imageUrl: '/static/img_123.png' }
+      // Static files are proxied through nginx to backend
+      const fullImageUrl = `${apiUrl}${data.imageUrl}`;
+      setGeneratedImageUrl(fullImageUrl);
+      return fullImageUrl;
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('Failed to generate image. Please try again.');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleFirstTimeSubmit = () => {
     if (tempName.trim() && tempEmail.trim()) {
       setName(tempName);
@@ -96,10 +192,13 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
     }
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (topic.trim()) {
       setProjectName(`Play - ${topic}`);
-      setShowSetup(false);
+      const imageUrl = await generateImage(topic);
+      if (imageUrl) {
+        setShowSetup(false);
+      }
     }
   };
 
@@ -141,6 +240,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
     
     setShowSaveAs(false);
     setShowResults(true);
+    playCongratsMessage(); // Play the congratulatory message when drawing is saved
   };
 
   const handleCloseResults = () => {
@@ -196,33 +296,31 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
           
           <div className="space-y-6">
             <div>
-              <Label htmlFor="template" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                Choose a template or draw freely
+              <Label htmlFor="prompt-input" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                Describe what you'd like to draw
               </Label>
-              <select
-                id="template"
+              <Input
+                id="prompt-input"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full mt-2 p-3 border-2 border-gray-300 dark:border-border rounded-lg bg-white dark:bg-card dark:text-foreground"
+                placeholder="e.g., a happy dog playing in a park, a beautiful mountain landscape..."
+                className="w-full mt-2"
                 style={{ fontFamily: 'Lexend, sans-serif' }}
-              >
-                <option value="">Select a template...</option>
-                {templates.map((template) => (
-                  <option key={template.value} value={template.value}>
-                    {template.name}
-                  </option>
-                ))}
-                <option value="freeform">Freeform (No Template)</option>
-              </select>
+              />
+              <p className="text-sm text-gray-500 dark:text-muted-foreground mt-1" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                AI will generate a coloring page based on your description
+              </p>
             </div>
+
+
 
             <Button
               onClick={handleStart}
-              disabled={!topic}
-              className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90 text-white"
+              disabled={isGenerating || !topic.trim()}
+              className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'Lexend, sans-serif' }}
             >
-              Start Playing
+              {isGenerating ? 'Generating your coloring page...' : 'Start Playing'}
             </Button>
           </div>
         </div>
@@ -326,7 +424,8 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
             ref={canvasRef}
             color={color}
             lineWidth={lineWidth}
-            template={topic === 'freeform' ? undefined : topic}
+            template={generatedImageUrl ? undefined : (topic === 'freeform' ? undefined : topic)}
+            baseUrl={generatedImageUrl}
             mode={mode}
             selfCorrecting={true}
             onFirstStroke={handleFirstStroke}
@@ -519,7 +618,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
               </p>
             </div>
             <p className="text-sm text-gray-600 dark:text-muted-foreground text-center" style={{ fontFamily: 'Lexend, sans-serif' }}>
-              Wonderful work! Your drawing has been saved. Keep enjoying the creative process!
+              {CONGRATS_MESSAGE}
             </p>
             <Button
               onClick={handleCloseResults}

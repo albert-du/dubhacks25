@@ -10,6 +10,7 @@ interface DrawingCanvasProps {
   lineWidth: number;
   spirals?: boolean;
   template?: string;
+  baseUrl?: string;
   mode?: 'trace' | 'color';
   selfCorrecting?: boolean;
   onAccuracyUpdate?: (accuracy: number) => void;
@@ -32,6 +33,7 @@ export const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
       lineWidth,
       spirals = false,
       template,
+      baseUrl,
       mode = 'color',
       selfCorrecting = false,
       onAccuracyUpdate,
@@ -66,19 +68,27 @@ export const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Set canvas size
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      // Set canvas size - ensure we have valid dimensions
+      const width = canvas.offsetWidth || 800;
+      const height = canvas.offsetHeight || 600;
+      
+      canvas.width = width;
+      canvas.height = height;
+
+      console.log('Canvas dimensions:', width, 'x', height);
 
       ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, width, height);
 
       if (spirals) {
-        drawSpirals(ctx, canvas.width, canvas.height);
+        drawSpirals(ctx, width, height);
       } else if (template) {
-        drawTemplate(ctx, canvas.width, canvas.height, template);
+        drawTemplate(ctx, width, height, template);
+      } else if (baseUrl) {
+        console.log('Drawing PNG with baseUrl:', baseUrl);
+        drawPNG(ctx, baseUrl, width, height);
       }
-    }, [spirals, template]);
+    }, [spirals, template, baseUrl]);
 
     // Initialize trace layer
     useEffect(() => {
@@ -452,6 +462,55 @@ export const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
       ctx.bezierCurveTo(cx + size / 2, cy, cx, cy, cx, cy + topCurveHeight);
       ctx.closePath();
       ctx.stroke();
+    };
+
+    const drawPNG = (ctx: CanvasRenderingContext2D, src: string, width: number, height: number) => {
+      const img = new Image();
+      
+      img.onload = () => {
+        console.log('Image loaded successfully:', src);
+        console.log('Image dimensions:', img.width, 'x', img.height);
+        console.log('Canvas dimensions:', width, 'x', height);
+        
+        // Calculate aspect ratios
+        const canvasAspectRatio = width / height;
+        const imageAspectRatio = img.width / img.height;
+        
+        console.log('Canvas aspect ratio:', canvasAspectRatio);
+        console.log('Image aspect ratio:', imageAspectRatio);
+        
+        let drawWidth, drawHeight, offsetX, offsetY;
+        
+        if (imageAspectRatio > canvasAspectRatio) {
+          // Image is wider than canvas - fit to width
+          drawWidth = width;
+          drawHeight = width / imageAspectRatio;
+          offsetX = 0;
+          offsetY = (height - drawHeight) / 2;
+        } else {
+          // Image is taller than canvas - fit to height
+          drawWidth = height * imageAspectRatio;
+          drawHeight = height;
+          offsetX = (width - drawWidth) / 2;
+          offsetY = 0;
+        }
+        
+        console.log('Drawing image at:', offsetX, offsetY, drawWidth, drawHeight);
+        
+        // Clear the canvas and draw the image centered with preserved aspect ratio
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      };
+      
+      img.onerror = (error) => {
+        console.error('Failed to load image:', src, error);
+      };
+      
+      // Enable CORS for cross-origin images
+      img.crossOrigin = 'anonymous';
+      img.src = src;
     };
 
     const getMousePos = (canvas: HTMLCanvasElement, e: React.MouseEvent | React.TouchEvent): Point => {
