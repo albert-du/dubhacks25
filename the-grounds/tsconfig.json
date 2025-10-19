@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",  // need to use the new JSX transform, missing so we had errors
+    "moduleResolution": "node",  
+    "strict": true,  
+    "baseUrl": ".", 
+    "paths": {
+      "@/*": ["src/*"] 
+    }
+  }
+}
