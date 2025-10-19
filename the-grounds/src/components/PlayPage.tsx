@@ -55,6 +55,66 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
   const [projectName, setProjectName] = useState('');
   const [showSaveAs, setShowSaveAs] = useState(false);
 
+  
+  // Congrats message and API key
+  const CONGRATS_MESSAGE = "Wonderful work! Your drawing has been saved. Keep enjoying the creative process!";
+  const ELEVEN_LABS_API_KEY = ""; // TODO: PUT IN API KEY WHEN NEEDED
+  const VOICE_ID = "cgSgspJ2msm6clMCkdW9"; 
+
+
+  const playCongratsMessage = async () => {
+    try {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': ELEVEN_LABS_API_KEY
+        },
+        body: JSON.stringify({
+          text: CONGRATS_MESSAGE,
+          model_id: 'eleven_monolingual_v1',
+          voice_settings: {
+            stability: 0.75,
+            similarity_boost: 0.75
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audio = new Audio(URL.createObjectURL(audioBlob));
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing congratulatory message:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isFirstTime && showSetup) {
+      setShowFirstTimeSetup(true);
+      setTempName(name);
+      setTempEmail(email);
+    }
+  }, []);
+
+  // Updated useEffect for timer with simplified cleanup
+  useEffect(() => {
+    if (isRunning && !isPaused) {
+      timerRef.current = window.setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isRunning, isPaused]);
+
   useEffect(() => {
     if (isFirstTime && showSetup) {
       setShowFirstTimeSetup(true);
@@ -141,6 +201,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
     
     setShowSaveAs(false);
     setShowResults(true);
+    playCongratsMessage(); // Play the congratulatory message when drawing is saved
   };
 
   const handleCloseResults = () => {
@@ -519,7 +580,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
               </p>
             </div>
             <p className="text-sm text-gray-600 dark:text-muted-foreground text-center" style={{ fontFamily: 'Lexend, sans-serif' }}>
-              Wonderful work! Your drawing has been saved. Keep enjoying the creative process!
+              {CONGRATS_MESSAGE}
             </p>
             <Button
               onClick={handleCloseResults}

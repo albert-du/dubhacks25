@@ -15,7 +15,7 @@ interface PracticePageProps {
 }
 
 const templates = [
-  { name: 'Heart', value: 'heart' },
+  { name: 'Heart!', value: 'heart' },
   { name: 'Star', value: 'star' },
   { name: 'Circle', value: 'circle' },
   { name: 'Daisy', value: 'daisy' },
@@ -23,6 +23,42 @@ const templates = [
   { name: 'Dog', value: 'dog' },
   { name: 'Music Note', value: 'musicNote' },
 ];
+
+const CONGRATS_MESSAGE = "Great work! Your practice session has been saved. Keep practicing to improve your motor skills!";
+const ELEVEN_LABS_API_KEY = ""; //TODO: PUT IN API KEY WHEN NEEDED
+const VOICE_ID = "cgSgspJ2msm6clMCkdW9"; 
+
+
+const playCongratsMessage = async () => {
+    try {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': ELEVEN_LABS_API_KEY
+        },
+        body: JSON.stringify({
+          text: CONGRATS_MESSAGE,
+          model_id: 'eleven_monolingual_v1',
+          voice_settings: {
+            stability: 0.75,
+            similarity_boost: 0.75
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audio = new Audio(URL.createObjectURL(audioBlob));
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing congratulatory message:', error);
+    }
+  };
 
 export function PracticePage({ onNavigate }: PracticePageProps) {
   const { name, email, setName, setEmail, isFirstTime, setIsFirstTime } = useUser();
@@ -144,6 +180,7 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     
     setShowSaveAs(false);
     setShowResults(true);
+    playCongratsMessage(); // Play the congratulatory message when drawing is saved
   };
 
   const handleCloseResults = () => {
@@ -537,7 +574,7 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
               </div>
             </div>
             <p className="text-sm text-gray-600 dark:text-muted-foreground text-center" style={{ fontFamily: 'Lexend, sans-serif' }}>
-              Great work! Your practice session has been saved. Keep practicing to improve your motor skills!
+              {CONGRATS_MESSAGE}
             </p>
             <Button
               onClick={handleCloseResults}
