@@ -1,8 +1,8 @@
 /**
- * The Gounds Prompt Enhancer — Cloudflare Worker
+ * The Grounds Prompt Enhancer — Cloudflare Worker
  *
  * Uses @cf/meta/llama-3.1-8b-instruct to rewrite a user prompt
- * based on tracing accuracy into a two-sentence coloring book scene
+ * based on tracing accuracy into a two+-sentence coloring book scene
  * with enhanced description.
  */
 
@@ -46,7 +46,7 @@ export default {
 
       // --- Build the LLM prompt
       const systemPrompt = `
-You write two-sentence prompts for a black-and-white coloring book.
+You write multi-sentence prompts for a black-and-white coloring book.
 Respond with a descriptive sentences suitable for a traceable line-drawing scene and a
 sentence indicating the intended audience based on tracing accuracy.
 No reasoning or explanations. The second sentence must begin with "Intended for"
@@ -61,7 +61,7 @@ Guidelines:
 - If 0.6 ≤ accuracy < 0.8 → moderate detail, balanced composition.
 - If ≥ 0.8 → slightly richer scene, still easy to trace.
 
-Write exactly two sentences as the final output.
+Write at least two sentences as the final output.
 
 The first sentence shall be elaborating on the initial idea to be more descriptive and vivid. Be creative.
 The second sentence shall be a single concise sentence indicating the intended audience.

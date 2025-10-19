@@ -132,6 +132,8 @@ def generate_outline_image(prompt: str) -> Dict[str, str]:
     "Avoid any text, watermarks, or signatures in the image."
     "Do not include any letters or words in the image."
     "Do not use any color—only black and white."
+    "For parkinson's patient, keep simple."
+    "This must be landscape."
 )
         
         current_app.logger.info(f"Original prompt: '{prompt}' → Enhanced: '{enhanced_user_prompt[:50]}...'")
@@ -170,6 +172,12 @@ def generate_outline_image(prompt: str) -> Dict[str, str]:
         
         current_app.logger.info(f"✓ Successfully generated image: {generated_image.size}")
         
+        # Apply multiple sharpen filters to make lines more crisp and clear
+        sharpened_image = generated_image.filter(ImageFilter.SHARPEN)
+        sharpened_image = sharpened_image.filter(ImageFilter.SHARPEN)
+        sharpened_image = sharpened_image.filter(ImageFilter.SHARPEN)
+        current_app.logger.info("✓ Applied 3x sharpen filter to image")
+        
         # Save to static directory with unique ID
         static_dir = current_app.static_folder or "static"
         os.makedirs(static_dir, exist_ok=True)
@@ -177,11 +185,11 @@ def generate_outline_image(prompt: str) -> Dict[str, str]:
         # Generate unique ID based on prompt
         image_id = f"img_{hashlib.md5(prompt.encode()).hexdigest()[:8]}"
         
-        # Save the AI-generated coloring book image directly (no edge detection needed)
+        # Save the sharpened coloring book image
         coloring_filename = f"{image_id}.png"
         coloring_file_path = os.path.join(static_dir, coloring_filename)
-        generated_image.save(coloring_file_path, format="PNG")
-        current_app.logger.info(f"✓ Saved coloring book image to {coloring_file_path}")
+        sharpened_image.save(coloring_file_path, format="PNG")
+        current_app.logger.info(f"✓ Saved sharpened coloring book image to {coloring_file_path}")
         
         return {
             "id": image_id,

@@ -1,6 +1,6 @@
 # The Grounds Backend (Flask)
 
-Minimal Flask backend for The Gounds with two endpoints:
+Minimal Flask backend for The Grounds with two endpoints:
 - POST /api/generate — generates outline images using Gemini AI (when API key has quota)
 - POST /api/score — returns mock accuracy/smoothness and feedback
 
