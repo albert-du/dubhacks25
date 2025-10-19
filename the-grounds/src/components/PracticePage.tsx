@@ -1,0 +1,554 @@
+import { useState, useRef, useEffect } from 'react';
+import { Undo, Redo, Eraser, RotateCcw, Pause, Play } from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { DrawingCanvas, DrawingCanvasRef } from './DrawingCanvas';
+import { Switch } from './ui/switch';
+import { Slider } from './ui/slider';
+import { useUser } from './UserContext';
+import { colorOptions } from './colorOptions';
+
+interface PracticePageProps {
+  onNavigate?: (page: string) => void;
+}
+
+const templates = [
+  { name: 'Heart', value: 'heart' },
+  { name: 'Star', value: 'star' },
+  { name: 'Circle', value: 'circle' },
+  { name: 'Daisy', value: 'daisy' },
+  { name: 'Cloud', value: 'cloud' },
+  { name: 'Dog', value: 'dog' },
+  { name: 'Music Note', value: 'musicNote' },
+];
+
+export function PracticePage({ onNavigate }: PracticePageProps) {
+  const { name, email, setName, setEmail, isFirstTime, setIsFirstTime } = useUser();
+  const [showSetup, setShowSetup] = useState(true);
+  const [topic, setTopic] = useState('');
+  const [mode, setMode] = useState<'trace' | 'color'>('trace');
+  const [color, setColor] = useState('#fa9da6');
+  const [lineWidth, setLineWidth] = useState(3);
+  const [canvasKey, setCanvasKey] = useState(0);
+  const [accuracy, setAccuracy] = useState(0);
+  const canvasRef = useRef<DrawingCanvasRef>(null);
+
+  // Custom color picker
+  const [customColor, setCustomColor] = useState('#fa9da6');
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  
+  // First time setup
+  const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
+  const [tempName, setTempName] = useState('');
+  const [tempEmail, setTempEmail] = useState('');
+
+  // Timer states
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const timerRef = useRef<number | null>(null);
+  
+  // Results dialog
+  const [showResults, setShowResults] = useState(false);
+  const [finalTime, setFinalTime] = useState(0);
+  const [finalAccuracy, setFinalAccuracy] = useState(0);
+  const [projectName, setProjectName] = useState('');
+  const [showSaveAs, setShowSaveAs] = useState(false);
+
+  useEffect(() => {
+    if (isFirstTime && showSetup) {
+      setShowFirstTimeSetup(true);
+      setTempName(name);
+      setTempEmail(email);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isRunning && !isPaused) {
+      timerRef.current = window.setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isRunning, isPaused]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleFirstTimeSubmit = () => {
+    if (tempName.trim() && tempEmail.trim()) {
+      setName(tempName);
+      setEmail(tempEmail);
+      setIsFirstTime(false);
+      setShowFirstTimeSetup(false);
+    }
+  };
+
+  const handleStart = () => {
+    if (topic.trim()) {
+      setProjectName(`Practice - ${topic}`);
+      setShowSetup(false);
+    }
+  };
+
+  const handleFirstStroke = () => {
+    if (!isRunning) {
+      setIsRunning(true);
+    }
+  };
+
+  const handlePause = () => {
+    setIsPaused(!isPaused);
+  };
+
+  const handleDone = () => {
+    setIsRunning(false);
+    setFinalTime(elapsedTime);
+    setFinalAccuracy(accuracy);
+    setShowSaveAs(true);
+  };
+
+  const handleSaveProject = () => {
+    const imageData = canvasRef.current?.getCanvasImage();
+    const now = new Date();
+    const timeOfDay = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    
+    if (imageData) {
+      const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+      projects.unshift({
+        id: Date.now(),
+        name: projectName,
+        type: 'Practice',
+        date: new Date().toISOString().split('T')[0],
+        timeOfDay: timeOfDay,
+        thumbnail: imageData,
+        time: elapsedTime,
+        accuracy: accuracy,
+      });
+      localStorage.setItem('projects', JSON.stringify(projects));
+    }
+    
+    setShowSaveAs(false);
+    setShowResults(true);
+  };
+
+  const handleCloseResults = () => {
+    setShowResults(false);
+    if (onNavigate) {
+      onNavigate('projects');
+    }
+  };
+
+  const handleReset = () => {
+    setCanvasKey((prev) => prev + 1);
+    setAccuracy(0);
+    setElapsedTime(0);
+    setIsRunning(false);
+    setIsPaused(false);
+  };
+
+  const handleUndo = () => {
+    canvasRef.current?.undo();
+  };
+
+  const handleRedo = () => {
+    canvasRef.current?.redo();
+  };
+
+  const handleClear = () => {
+    canvasRef.current?.clear();
+  };
+
+  const handleModeChange = (isTraceMode: boolean) => {
+    const newMode = isTraceMode ? 'trace' : 'color';
+    setMode(newMode);
+    if (newMode === 'trace') {
+      setColor('#000000');
+    } else {
+      setColor(customColor);
+    }
+  };
+
+  const handleColorChange = (newColor: string) => {
+    setCustomColor(newColor);
+    if (mode === 'color') {
+      setColor(newColor);
+    }
+  };
+
+  if (showSetup) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f3e2c6] to-[#fff6a4] dark:from-background dark:to-accent flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full border-4 border-[#fa9da6] dark:border-secondary">
+          <h2 className="text-3xl text-[#527a62] dark:text-[#9cc9b3] mb-6 text-center" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+            Practice Mode
+          </h2>
+          
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="template" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                Choose a template
+              </Label>
+              <select
+                id="template"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="w-full mt-2 p-3 border-2 border-gray-300 dark:border-border rounded-lg bg-white dark:bg-card dark:text-foreground"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              >
+                <option value="">Select a template...</option>
+                {templates.map((template) => (
+                  <option key={template.value} value={template.value}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Button
+              onClick={handleStart}
+              disabled={!topic}
+              className="w-full bg-[#fa9da6] hover:bg-[#e88a95] dark:bg-secondary dark:hover:bg-secondary/90 text-white"
+              style={{ fontFamily: 'Lexend, sans-serif' }}
+            >
+              Start Practice
+            </Button>
+          </div>
+        </div>
+
+        {/* First Time Setup Dialog */}
+        <Dialog open={showFirstTimeSetup} onOpenChange={() => {}}>
+          <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+                Welcome to The Grounds!
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-gray-600 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                Please provide your information to get started.
+              </p>
+              <div>
+                <Label htmlFor="setup-name" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                  Name
+                </Label>
+                <Input
+                  id="setup-name"
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  placeholder="Enter your name"
+                  style={{ fontFamily: 'Lexend, sans-serif' }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="setup-email" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                  Email
+                </Label>
+                <Input
+                  id="setup-email"
+                  type="email"
+                  value={tempEmail}
+                  onChange={(e) => setTempEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  style={{ fontFamily: 'Lexend, sans-serif' }}
+                />
+              </div>
+              <Button
+                onClick={handleFirstTimeSubmit}
+                disabled={!tempName.trim() || !tempEmail.trim()}
+                className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              >
+                Get Started
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col bg-[#f3e2c6] dark:bg-background" style={{ height: 'calc(100vh - 73px)' }}>
+      {/* Top Bar */}
+      <div className="bg-[#fff6a4] dark:bg-accent p-4 border-b-2 border-[#fa9da6] dark:border-secondary">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-6 flex-1">
+            <p className="text-gray-700 dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+              Practice mode tracks your accuracy
+            </p>
+            <div className="bg-white dark:bg-card px-4 py-2 rounded-lg border-2 border-[#fa9da6] dark:border-secondary">
+              <p className="text-sm text-gray-600 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                Accuracy: <span className="text-lg font-bold text-[#527a62] dark:text-[#9cc9b3]">{accuracy.toFixed(1)}%</span>
+              </p>
+            </div>
+            <div className="bg-white dark:bg-card px-4 py-2 rounded-lg border-2 border-[#fa9da6] dark:border-secondary">
+              <p className="text-sm text-gray-600 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                Time: <span className="text-lg font-bold text-[#527a62] dark:text-[#9cc9b3]">{formatTime(elapsedTime)}</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={handlePause}
+              variant="outline"
+              size="sm"
+              className="gap-2 bg-white dark:bg-card"
+              style={{ fontFamily: 'Lexend, sans-serif' }}
+            >
+              {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+              {isPaused ? 'Resume' : 'Pause'}
+            </Button>
+            <Button
+              onClick={handleDone}
+              variant="default"
+              size="sm"
+              className="gap-2 bg-[#fa9da6] hover:bg-[#e88a95] dark:bg-secondary dark:hover:bg-secondary/90"
+              style={{ fontFamily: 'Lexend, sans-serif' }}
+            >
+              Done
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Canvas Area */}
+      <div className="flex-1 p-8">
+        <div className="h-full bg-white dark:bg-card rounded-xl shadow-lg border-4 border-[#fa9da6] dark:border-secondary overflow-hidden">
+          <DrawingCanvas
+            key={canvasKey}
+            ref={canvasRef}
+            color={color}
+            lineWidth={lineWidth}
+            template={topic}
+            mode={mode}
+            onAccuracyUpdate={setAccuracy}
+            onFirstStroke={handleFirstStroke}
+          />
+        </div>
+      </div>
+
+      {/* Toolbox */}
+      <div className="bg-white dark:bg-card border-t-4 border-[#fa9da6] dark:border-secondary p-4">
+        <div className="max-w-4xl mx-auto space-y-4">
+          {/* Mode Switch */}
+          <div className="flex items-center justify-center gap-4 pb-4 border-b border-gray-200 dark:border-border">
+            <Label className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+              Trace Mode
+            </Label>
+            <Switch
+              checked={mode === 'trace'}
+              onCheckedChange={handleModeChange}
+            />
+            <Label className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+              Color Mode
+            </Label>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-between">
+            {/* Left: Color controls */}
+            <div className="flex items-center gap-4">
+              {mode === 'color' && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontFamily: 'Lexend, sans-serif' }} className="dark:text-foreground">Color:</span>
+                    <div className="flex gap-2">
+                      {colorOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => handleColorChange(option.value)}
+                          className={`w-8 h-8 rounded-full border-2 transition-all ${
+                            customColor === option.value ? 'border-gray-800 dark:border-gray-200 scale-110' : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                          style={{ backgroundColor: option.value }}
+                          title={option.name}
+                        />
+                      ))}
+                      <button
+                        onClick={() => setShowColorPicker(!showColorPicker)}
+                        className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500"
+                        title="Custom Color"
+                      />
+                    </div>
+                  </div>
+                  
+                  {showColorPicker && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={customColor}
+                        onChange={(e) => handleColorChange(e.target.value)}
+                        className="w-10 h-10 rounded cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <span style={{ fontFamily: 'Lexend, sans-serif' }} className="dark:text-foreground">Size:</span>
+                    <Slider
+                      value={[lineWidth]}
+                      onValueChange={(value) => setLineWidth(value[0])}
+                      min={1}
+                      max={20}
+                      step={1}
+                      className="w-32"
+                    />
+                    <span className="w-8 text-center dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>{lineWidth}</span>
+                  </div>
+                </>
+              )}
+              {mode === 'trace' && (
+                <div className="flex items-center gap-2">
+                  <span style={{ fontFamily: 'Lexend, sans-serif' }} className="dark:text-foreground">Pen:</span>
+                  <div className="w-8 h-8 rounded-full bg-black border-2 border-gray-300 dark:border-gray-600"></div>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Action buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleUndo}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              >
+                <Undo className="w-4 h-4" />
+                Undo
+              </Button>
+              <Button
+                onClick={handleRedo}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              >
+                <Redo className="w-4 h-4" />
+                Redo
+              </Button>
+              <Button
+                onClick={handleClear}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              >
+                <Eraser className="w-4 h-4" />
+                Clear
+              </Button>
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Save As Dialog */}
+      <Dialog open={showSaveAs} onOpenChange={setShowSaveAs}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+              Save Project
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="project-name" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                Project Name
+              </Label>
+              <Input
+                id="project-name"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                placeholder="Enter project name"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowSaveAs(false)}
+                variant="outline"
+                className="flex-1"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveProject}
+                className="flex-1 bg-[#fa9da6] hover:bg-[#e88a95] dark:bg-secondary dark:hover:bg-secondary/90"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Results Dialog */}
+      <Dialog open={showResults} onOpenChange={handleCloseResults}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+              Practice Complete!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#f3e2c6] dark:bg-muted rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-600 dark:text-muted-foreground mb-2" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                  Total Time
+                </p>
+                <p className="text-3xl font-bold text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                  {formatTime(finalTime)}
+                </p>
+              </div>
+              <div className="bg-[#f3e2c6] dark:bg-muted rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-600 dark:text-muted-foreground mb-2" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                  Accuracy
+                </p>
+                <p className="text-3xl font-bold text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                  {finalAccuracy.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-muted-foreground text-center" style={{ fontFamily: 'Lexend, sans-serif' }}>
+              Great work! Your practice session has been saved. Keep practicing to improve your motor skills!
+            </p>
+            <Button
+              onClick={handleCloseResults}
+              className="w-full bg-[#fa9da6] hover:bg-[#e88a95] dark:bg-secondary dark:hover:bg-secondary/90"
+              style={{ fontFamily: 'Lexend, sans-serif' }}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
