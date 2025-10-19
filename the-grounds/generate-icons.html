@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator for The Grounds PWA</title>
+</head>
+<body>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <script>
+        // Generate a simple icon for The Grounds PWA
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Background gradient
+        const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+        gradient.addColorStop(0, '#86b19c');
+        gradient.addColorStop(1, '#fff6a4');
+        
+        // Draw background
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Draw stylized "G" for Grounds
+        ctx.fillStyle = '#527a62';
+        ctx.font = 'bold 200px Lexend, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('G', 256, 256);
+        
+        // Add small brush stroke accent
+        ctx.strokeStyle = '#fa9da6';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(350, 180, 40, 0, Math.PI * 1.5);
+        ctx.stroke();
+        
+        // Download function for different sizes
+        function downloadIcon(size, name) {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = size;
+            tempCanvas.height = size;
+            tempCtx.drawImage(canvas, 0, 0, size, size);
+            
+            const link = document.createElement('a');
+            link.download = name;
+            link.href = tempCanvas.toDataURL();
+            link.click();
+        }
+        
+        // Auto-generate icons
+        setTimeout(() => {
+            downloadIcon(192, 'icon-192x192.png');
+            downloadIcon(512, 'icon-512x512.png');
+            downloadIcon(180, 'apple-touch-icon.png');
+        }, 1000);
+    </script>
+</body>
+</html>

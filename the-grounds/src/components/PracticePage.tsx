@@ -14,15 +14,18 @@ interface PracticePageProps {
   onNavigate?: (page: string) => void;
 }
 
-const templates = [
-  { name: 'Heart!', value: 'heart' },
-  { name: 'Star', value: 'star' },
-  { name: 'Circle', value: 'circle' },
-  { name: 'Daisy', value: 'daisy' },
-  { name: 'Cloud', value: 'cloud' },
-  { name: 'Dog', value: 'dog' },
-  { name: 'Music Note', value: 'musicNote' },
-];
+
+// Commented out old templates - now using AI generation
+// const templates = [
+//   { name: 'Heart', value: 'heart' },
+//   { name: 'Star', value: 'star' },
+//   { name: 'Circle', value: 'circle' },
+//   { name: 'Daisy', value: 'daisy' },
+//   { name: 'Cloud', value: 'cloud' },
+//   { name: 'Dog', value: 'dog' },
+//   { name: 'Music Note', value: 'musicNote' },
+// ];
+
 
 const CONGRATS_MESSAGE = "Great work! Your practice session has been saved. Keep practicing to improve your motor skills!";
 const ELEVEN_LABS_API_KEY = ""; //TODO: PUT IN API KEY WHEN NEEDED
@@ -93,6 +96,10 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
   const [projectName, setProjectName] = useState('');
   const [showSaveAs, setShowSaveAs] = useState(false);
 
+  // AI Generation states
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
+
   useEffect(() => {
     if (isFirstTime && showSetup) {
       setShowFirstTimeSetup(true);
@@ -125,6 +132,37 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const generateImage = async (prompt: string) => {
+    setIsGenerating(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      const response = await fetch(`${apiUrl}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      // Backend returns { id: 'img_123', imageUrl: '/static/img_123.png' }
+      // Static files are proxied through nginx to backend
+      const fullImageUrl = `${apiUrl}${data.imageUrl}`;
+      setGeneratedImageUrl(fullImageUrl);
+      return fullImageUrl;
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('Failed to generate image. Please try again.');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleFirstTimeSubmit = () => {
     if (tempName.trim() && tempEmail.trim()) {
       setName(tempName);
@@ -134,10 +172,15 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     }
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (topic.trim()) {
       setProjectName(`Practice - ${topic}`);
-      setShowSetup(false);
+      
+      // Generate AI image from the prompt
+      const imageUrl = await generateImage(topic);
+      if (imageUrl) {
+        setShowSetup(false);
+      }
     }
   };
 
@@ -237,32 +280,29 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
           
           <div className="space-y-6">
             <div>
-              <Label htmlFor="template" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                Choose a template
+              <Label htmlFor="prompt-input" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                Describe what you'd like to practice tracing
               </Label>
-              <select
-                id="template"
+              <Input
+                id="prompt-input"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full mt-2 p-3 border-2 border-gray-300 dark:border-border rounded-lg bg-white dark:bg-card dark:text-foreground"
+                placeholder="e.g., a simple flower, basic geometric shapes, a cute butterfly..."
+                className="w-full mt-2"
                 style={{ fontFamily: 'Lexend, sans-serif' }}
-              >
-                <option value="">Select a template...</option>
-                {templates.map((template) => (
-                  <option key={template.value} value={template.value}>
-                    {template.name}
-                  </option>
-                ))}
-              </select>
+              />
+              <p className="text-sm text-gray-500 dark:text-muted-foreground mt-1" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                AI will generate a practice tracing page based on your description
+              </p>
             </div>
 
             <Button
               onClick={handleStart}
-              disabled={!topic}
-              className="w-full bg-[#fa9da6] hover:bg-[#e88a95] dark:bg-secondary dark:hover:bg-secondary/90 text-white"
+              disabled={isGenerating || !topic.trim()}
+              className="w-full bg-[#fa9da6] hover:bg-[#e88a95] dark:bg-secondary dark:hover:bg-secondary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'Lexend, sans-serif' }}
             >
-              Start Practice
+              {isGenerating ? 'Generating your practice page...' : 'Start Practice'}
             </Button>
           </div>
         </div>
@@ -371,7 +411,8 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
             ref={canvasRef}
             color={color}
             lineWidth={lineWidth}
-            template={topic}
+            template={generatedImageUrl ? undefined : topic}
+            baseUrl={generatedImageUrl}
             mode={mode}
             onAccuracyUpdate={setAccuracy}
             onFirstStroke={handleFirstStroke}

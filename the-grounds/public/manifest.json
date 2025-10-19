@@ -1,0 +1,46 @@
+{
+  "name": "The Grounds - Therapeutic Tracing",
+  "short_name": "The Grounds",
+  "description": "AI-powered therapeutic coloring and tracing application for motor skill development",
+  "theme_color": "#86b19c",
+  "background_color": "#fff6a4",
+  "display": "standalone",
+  "orientation": "landscape-primary",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["health", "education", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Practice Mode",
+      "short_name": "Practice",
+      "description": "Start a practice tracing session",
+      "url": "/?mode=practice",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Play Mode", 
+      "short_name": "Play",
+      "description": "Start a relaxed coloring session",
+      "url": "/?mode=play",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "any"
+        }
+      ]
+    }
+  ]
+}

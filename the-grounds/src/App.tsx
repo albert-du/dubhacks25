@@ -9,6 +9,7 @@ import { PlayPage } from './components/PlayPage';
 import { ProjectsPage } from './components/ProjectsPage';
 import { ProfilePage } from './components/ProfilePage';
 import { SettingsPage } from './components/SettingsPage';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 
 type Page = 'home' | 'test' | 'practice' | 'play' | 'projects' | 'profile' | 'settings';
 
@@ -39,11 +40,12 @@ export default function App() {
   return (
     <ThemeProvider>
       <UserProvider>
-        <div className="size-full flex flex-col">
+        <div className="size-full flex flex-col landscape-optimized">
           <Navigation currentPage={currentPage} onNavigate={setCurrentPage} />
           <main className="flex-1 overflow-auto">
             {renderPage()}
           </main>
+          <PWAInstallPrompt />
         </div>
       </UserProvider>
     </ThemeProvider>
