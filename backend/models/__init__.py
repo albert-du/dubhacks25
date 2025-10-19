@@ -1,1 +1,1 @@
-"""Pydantic models for TraceMe backend."""
+"""Pydantic models for The Grounds backend."""

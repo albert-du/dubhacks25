@@ -1,5 +1,5 @@
 """
-TraceMe Flask Backend
+The Grounds Flask Backend
 
 Run locally:
   pip install -r requirements.txt
@@ -51,8 +51,10 @@ def create_app() -> Flask:
     return app
 
 
+# Create app instance for Gunicorn (production)
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     # Note: host default is 127.0.0.1, port default is 5000
-    app.logger.info("TraceMe backend starting...")
+    app.logger.info("The Grounds backend starting...")
     app.run(debug=True)

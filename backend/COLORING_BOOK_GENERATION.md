@@ -1,4 +1,4 @@
-# TraceMe Backend - Image Generation Summary
+# The Grounds Backend - Image Generation Summary
 
 ## ✅ Current Implementation (Updated!)
 

@@ -1,0 +1,49 @@
+services:
+  # Flask Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: the-grounds-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      # Persist generated images
+      - ./backend/static:/app/static
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/generate"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - the-grounds-network
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./the-grounds
+      dockerfile: Dockerfile
+    container_name: the-grounds-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:5000
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - the-grounds-network
+
+networks:
+  the-grounds-network:
+    driver: bridge
+
+volumes:
+  backend-static:
+    driver: local

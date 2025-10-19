@@ -1,1 +1,1 @@
-"""Service layer for TraceMe backend (AI generation, scoring)."""
+"""Service layer for The Grounds backend (AI generation, scoring)."""

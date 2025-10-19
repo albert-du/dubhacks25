@@ -1,1 +1,1 @@
-"""Blueprint route package for TraceMe backend."""
+"""Blueprint route package for The Grounds backend."""

@@ -1,1 +1,1 @@
-"""Utilities for TraceMe backend (logging, helpers)."""
+"""Utilities for The Grounds backend (logging, helpers)."""

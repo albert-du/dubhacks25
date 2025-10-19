@@ -108,7 +108,7 @@ def generate_outline_image(prompt: str) -> Dict[str, str]:
         
         # Mock recent accuracy scores (TODO: Replace with actual user history)
         # These represent recent tracing performance scores
-        mock_accuracy_scores = [0.75, 0.82, 0.68, 0.79, 0.85]
+        mock_accuracy_scores = [0.1, 0.3, 0.2, 0.1]
         
         # Enhance the prompt using the Prompt Enhancer API
         enhanced_user_prompt = enhance_prompt(prompt, mock_accuracy_scores)
@@ -129,6 +129,9 @@ def generate_outline_image(prompt: str) -> Dict[str, str]:
     "Focus on balanced composition and centered subjects suitable for tracing practice."
     "Favor larger shapes and smoother curves rather than small intricate patterns."
     "Output should resemble professional vector line art or SVG coloring book illustrations."
+    "Avoid any text, watermarks, or signatures in the image."
+    "Do not include any letters or words in the image."
+    "Do not use any color—only black and white."
 )
         
         current_app.logger.info(f"Original prompt: '{prompt}' → Enhanced: '{enhanced_user_prompt[:50]}...'")
