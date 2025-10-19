@@ -3,8 +3,34 @@
   <html lang="en">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>The Playground App</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+      <title>The Grounds - Therapeutic Tracing</title>
+      
+      <!-- PWA Manifest -->
+      <link rel="manifest" href="/manifest.json" />
+      
+      <!-- Theme colors -->
+      <meta name="theme-color" content="#86b19c" />
+      <meta name="msapplication-TileColor" content="#86b19c" />
+      
+      <!-- iOS specific meta tags -->
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      <meta name="apple-mobile-web-app-title" content="The Grounds" />
+      
+      <!-- Icons -->
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="/icon.svg">
+    
+    <!-- Standard favicon -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">      <!-- Prevent zoom on iOS -->
+      <meta name="format-detection" content="telephone=no" />
+      
+      <!-- App description -->
+      <meta name="description" content="AI-powered therapeutic coloring and tracing application for motor skill development" />
+      
+      <!-- Preload critical resources -->
+      <link rel="preconnect" href="/" />
     </head>
 
     <body>
