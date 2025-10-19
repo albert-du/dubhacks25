@@ -15,7 +15,7 @@ services:
       - ./backend/static:/app/static
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/generate"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/generate').read()"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -23,7 +23,7 @@ services:
     networks:
       - the-grounds-network
 
-  # Next.js Frontend
+  # Vite + React Frontend
   frontend:
     build:
       context: ./the-grounds
@@ -32,8 +32,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://backend:5000
+      - VITE_API_URL=http://localhost:5000
     depends_on:
       - backend
     restart: unless-stopped
