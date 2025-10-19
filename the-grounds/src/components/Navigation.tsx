@@ -1,6 +1,6 @@
 import { Home, FolderOpen, User, Settings } from "lucide-react";
 import { Button } from "./ui/button";
-import logoImage from "figma:asset/2b7101c05d9d6596ee47b6cf85a79d232cdb3fbc.png";
+import theGroundsLogo from "../the_grounds_logo.png";
 
 type Page =
   | "home"
@@ -28,7 +28,7 @@ export function Navigation({
         className="flex items-center gap-3 hover:opacity-80 transition-opacity"
       >
         <img
-          src={logoImage}
+          src={theGroundsLogo}
           alt="The Grounds"
           className="h-12 object-contain"
         />
