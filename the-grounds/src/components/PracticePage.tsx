@@ -48,6 +48,8 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
   // AI Generation states
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [uploadedImagePreview, setUploadedImagePreview] = useState<string>('');
 
   // LLM Encouragement state
   const [encouragementMessage, setEncouragementMessage] = useState('');
@@ -191,24 +193,75 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Handle image upload
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File input changed:', event.target.files);
+    const file = event.target.files?.[0];
+    if (file) {
+      console.log('File selected:', file.name, file.type, file.size);
+      setUploadedImage(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        console.log('File reader loaded, setting preview');
+        setUploadedImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      console.log('No file selected');
+    }
+  };
+
+  // Clear uploaded image
+  const clearUploadedImage = () => {
+    setUploadedImage(null);
+    setUploadedImagePreview('');
+  };
+
   const generateImage = async (prompt: string) => {
     setIsGenerating(true);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiUrl}/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt }),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      
+      // If there's an uploaded image, send as multipart form data
+      if (uploadedImage) {
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        formData.append('image', uploadedImage);
+
+        const response = await fetch(`${apiUrl}/generate`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const fullImageUrl = `${apiUrl}${data.imageUrl}`;
+        setGeneratedImageUrl(fullImageUrl);
+        return fullImageUrl;
+      } else {
+        // Send as JSON for text-only requests
+        const response = await fetch(`${apiUrl}/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const fullImageUrl = `${apiUrl}${data.imageUrl}`;
+        setGeneratedImageUrl(fullImageUrl);
+        return fullImageUrl;
       }
-      const data = await response.json();
-      const fullImageUrl = `${apiUrl}${data.imageUrl}`;
-      setGeneratedImageUrl(fullImageUrl);
-      return fullImageUrl;
     } catch (error) {
       console.error('Error generating image:', error);
       alert('Failed to generate image. Please try again.');
@@ -344,9 +397,59 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
                 AI will generate a practice tracing page based on your description
               </p>
             </div>
+
+            <div className="space-y-3">
+              <Label className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                Upload a Photo (Optional)
+              </Label>
+              
+              {!uploadedImagePreview ? (
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className="cursor-pointer flex flex-col items-center space-y-2"
+                  >
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                      Click to upload a photo
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                      AI will create a practice page inspired by your photo
+                    </p>
+                  </label>
+                </div>
+              ) : (
+                <div className="relative">
+                  <img
+                    src={uploadedImagePreview}
+                    alt="Uploaded preview"
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                  <button
+                    onClick={clearUploadedImage}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
             <Button
               onClick={handleStart}
-              disabled={isGenerating || !topic.trim()}
+              disabled={isGenerating || (!topic.trim() && !uploadedImage)}
               className="w-full bg-[#fa9da6] hover:bg-[#e88a95] dark:bg-secondary dark:hover:bg-secondary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'Lexend, sans-serif' }}
             >

@@ -1,7 +1,7 @@
 import os
 import uuid
 import hashlib
-from typing import Dict, List
+from typing import Dict, List, Optional
 from io import BytesIO
 import requests
 
@@ -85,7 +85,7 @@ def _extract_outline_from_image(img: Image.Image) -> Image.Image:
     return result
 
 
-def generate_outline_image(prompt: str) -> Dict[str, str]:
+def generate_outline_image(prompt: str, user_image_data: Optional[bytes] = None) -> Dict[str, str]:
     """Generate a coloring page outline using Gemini 2.0 Flash Image Generation.
     
     Uses gemini-2.0-flash-preview-image-generation model which is available on free tier.
@@ -137,17 +137,50 @@ def generate_outline_image(prompt: str) -> Dict[str, str]:
 )
         
         current_app.logger.info(f"Original prompt: '{prompt}' → Enhanced: '{enhanced_user_prompt[:50]}...'")
+        if user_image_data:
+            current_app.logger.info(f"Using multimodal input with uploaded image ({len(user_image_data)} bytes)")
         
         # Use Gemini 2.0 Flash Preview Image Generation (free tier)
         model_name = "gemini-2.0-flash-preview-image-generation"
         
         current_app.logger.info(f"Using model: {model_name}")
         
+        # Prepare content for generation
+        content_parts = [enhanced_prompt]
+        
+        # Add user image if provided
+        if user_image_data:
+            try:
+                user_image = Image.open(BytesIO(user_image_data))
+                if user_image.format.lower() in ['jpeg', 'jpg']:
+                    mime_type = 'image/jpeg'
+                elif user_image.format.lower() == 'png':
+                    mime_type = 'image/png'
+                elif user_image.format.lower() == 'webp':
+                    mime_type = 'image/webp'
+                else:
+                    # Convert to PNG if unknown format
+                    png_buffer = BytesIO()
+                    user_image.save(png_buffer, format='PNG')
+                    user_image_data = png_buffer.getvalue()
+                    mime_type = 'image/png'
+                
+                current_app.logger.info(f"Adding user image: {mime_type}, {user_image.size}")
+                
+                # Add image as inline data
+                content_parts.append(types.Part.from_bytes(
+                    data=user_image_data,
+                    mime_type=mime_type
+                ))
+                
+            except Exception as e:
+                current_app.logger.warning(f"Could not process user image, continuing with text-only: {e}")
+        
         # Generate content with IMAGE and TEXT response modalities
         # 4:3 aspect ratio is requested in the prompt text
         response = client.models.generate_content(
             model=model_name,
-            contents=[enhanced_prompt],
+            contents=content_parts,
             config=types.GenerateContentConfig(
                 response_modalities=["IMAGE", "TEXT"]
             )
