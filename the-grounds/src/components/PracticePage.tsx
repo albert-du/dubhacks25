@@ -14,7 +14,7 @@ interface PracticePageProps {
   onNavigate?: (page: string) => void;
 }
 
-const ELEVEN_LABS_API_KEY = ""; //TODO: PUT IN API KEY WHEN NEEDED
+const ELEVEN_LABS_API_KEY = "sk_67b54fa3b8d90b8ccac535383bf6bdf98ba6b45880b09a22";
 const VOICE_ID = "cgSgspJ2msm6clMCkdW9"; 
 
 export function PracticePage({ onNavigate }: PracticePageProps) {
@@ -97,8 +97,8 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
       const projects = JSON.parse(localStorage.getItem('projects') || '[]');
       const practiceSessions = projects
         .filter((p: any) => p.type === 'Practice')
-        .slice(0, 10) // Get last 10 practice sessions
-        .reverse(); // Reverse to show oldest to newest
+        .slice(0, 10)
+        .reverse();
       
       // Format history context for the LLM
       let historyContext = 'User practice tracing history:\n\n';
@@ -119,14 +119,14 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
       }
       
       // Add current session info
-      const currentTimeFormatted = Math.floor(elapsedTime / 60) > 0 
-        ? `${Math.floor(elapsedTime / 60)} minutes ${elapsedTime % 60} seconds`
-        : `${elapsedTime} seconds`;
+      const currentTimeFormatted = Math.floor(finalTime / 60) > 0 
+        ? `${Math.floor(finalTime / 60)} minutes ${finalTime % 60} seconds`
+        : `${finalTime} seconds`;
         
       historyContext += `\nCurrent practice session just completed:\n`;
       historyContext += `  Topic: "${topic}"\n`;
       historyContext += `  Time: ${currentTimeFormatted}\n`;
-      historyContext += `  Accuracy: ${accuracy.toFixed(1)}%\n`;
+      historyContext += `  Accuracy: ${finalAccuracy.toFixed(1)}%\n`;
       historyContext += `  Total practice sessions completed: ${practiceSessions.length + 1}\n`;
       historyContext += '\nContext: This is a practice tracing mode for individuals with Parkinson\'s disease to work on motor control and precision. Unlike the relaxed Play mode, Practice mode tracks accuracy to help users see their improvement. Focus on celebrating progress in accuracy, consistency in practice, and the dedication to skill-building. Be encouraging about both the choice of practice topics and any improvements in performance.';
 
@@ -155,7 +155,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
       }
     } catch (error) {
       console.error('Error fetching encouragement:', error);
-      // Fallback message if API fails
       setEncouragementMessage('Great work! Your practice session has been saved. Keep practicing to improve your motor skills!');
     } finally {
       setIsLoadingEncouragement(false);
@@ -261,23 +260,22 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
         date: new Date().toISOString().split('T')[0],
         timeOfDay: timeOfDay,
         thumbnail: imageData,
-        time: elapsedTime,
-        accuracy: accuracy,
+        time: finalTime, // Use finalTime instead of elapsedTime
+        accuracy: finalAccuracy, // Use finalAccuracy instead of accuracy
       });
       localStorage.setItem('projects', JSON.stringify(projects));
     }
     
     setShowSaveAs(false);
-    
-    // Fetch personalized encouragement before showing results
-    await fetchEncouragement();
-    
     setShowResults(true);
+    
+    // Fetch personalized encouragement AFTER dialog is visible
+    await fetchEncouragement();
   };
 
   const handleCloseResults = () => {
     setShowResults(false);
-    setEncouragementMessage(''); // Reset for next session
+    setEncouragementMessage('');
     if (onNavigate) {
       onNavigate('projects');
     }
@@ -367,7 +365,7 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6 flex-1">
             <p className="text-gray-700 dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-              Practice mode tracks your accuracy
+              Practice mode: Trace carefully to improve motor control and accuracy
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -612,7 +610,7 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
                 <div className="flex items-center justify-center gap-2">
                   <Sparkles className="w-5 h-5 text-purple-500 animate-pulse" />
                   <p className="text-sm text-purple-600 dark:text-purple-400" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                    Generating personalized encouragement...
+                    Generating personalized message...
                   </p>
                 </div>
               </div>

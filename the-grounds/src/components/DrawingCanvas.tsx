@@ -530,10 +530,30 @@ export const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
       const ctx = bgCanvas.getContext('2d');
       if (!ctx) return false;
 
-      const imageData = ctx.getImageData(x, y, 1, 1);
-      const [r, g, b, a] = imageData.data;
+      // Check a slightly larger area (5x5 pixels) to be more forgiving for motor control issues
+      const tolerance = 2;
+      let hasTemplatePixel = false;
 
-      return a > 0 && (r < 250 || g < 250 || b < 250);
+      for (let dx = -tolerance; dx <= tolerance; dx++) {
+        for (let dy = -tolerance; dy <= tolerance; dy++) {
+          const checkX = Math.round(x + dx);
+          const checkY = Math.round(y + dy);
+          
+          if (checkX >= 0 && checkX < bgCanvas.width && checkY >= 0 && checkY < bgCanvas.height) {
+            const imageData = ctx.getImageData(checkX, checkY, 1, 1);
+            const [r, g, b, a] = imageData.data;
+            
+            // Check if this pixel is part of the template (not white background)
+            if (a > 0 && (r < 240 || g < 240 || b < 240)) {
+              hasTemplatePixel = true;
+              break;
+            }
+          }
+        }
+        if (hasTemplatePixel) break;
+      }
+
+      return hasTemplatePixel;
     };
 
     const applySelfCorrection = (point: Point): Point => {
@@ -587,22 +607,27 @@ export const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
 
       let currentPoint = getMousePos(canvas, e);
 
-      // Apply self-correction only for trace mode
+      // Apply self-correction only for trace mode in Play mode
       if (selfCorrecting && mode === 'trace') {
         currentPoint = applySelfCorrection(currentPoint);
       }
 
-      // Check accuracy if enabled and in trace mode
-      if (onAccuracyUpdate && template && mode === 'trace') {
-        const isAccurate = checkAccuracy(currentPoint.x, currentPoint.y);
+      // Check accuracy for Practice mode (when onAccuracyUpdate exists and mode is trace)
+      // Sample every 3rd point to reduce sensitivity for tremor-affected users
+      if (onAccuracyUpdate && mode === 'trace' && (spirals || template || baseUrl)) {
         setAccuracyPoints((prev) => {
-          const newPoints = {
-            total: prev.total + 1,
-            accurate: prev.accurate + (isAccurate ? 1 : 0),
-          };
-          const accuracy = (newPoints.accurate / newPoints.total) * 100;
-          onAccuracyUpdate(accuracy);
-          return newPoints;
+          // Only check every 3rd point for better performance and less sensitivity
+          if (prev.total % 3 === 0) {
+            const isAccurate = checkAccuracy(currentPoint.x, currentPoint.y);
+            const newPoints = {
+              total: prev.total + 1,
+              accurate: prev.accurate + (isAccurate ? 1 : 0),
+            };
+            const accuracy = newPoints.total > 0 ? (newPoints.accurate / newPoints.total) * 100 : 0;
+            onAccuracyUpdate(accuracy);
+            return newPoints;
+          }
+          return { ...prev, total: prev.total + 1 };
         });
       }
 

@@ -91,12 +91,12 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
   const fetchEncouragement = async () => {
     setIsLoadingEncouragement(true);
     try {
-      // Get previous sessions from localStorage
-      const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+      // Get previous sessions from memory (not localStorage since it's not supported)
+      const projects = JSON.parse(sessionStorage.getItem('projects') || '[]');
       const playSessions = projects
         .filter((p: any) => p.type === 'Play')
-        .slice(0, 10) // Get last 10 sessions (most recent first)
-        .reverse(); // Reverse to show oldest to newest for better context
+        .slice(0, 10)
+        .reverse();
       
       // Format history context for the LLM
       let historyContext = 'User drawing practice history:\n\n';
@@ -117,9 +117,9 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
       }
       
       // Add current session info
-      const currentTimeFormatted = Math.floor(elapsedTime / 60) > 0 
-        ? `${Math.floor(elapsedTime / 60)} minutes ${elapsedTime % 60} seconds`
-        : `${elapsedTime} seconds`;
+      const currentTimeFormatted = Math.floor(finalTime / 60) > 0 
+        ? `${Math.floor(finalTime / 60)} minutes ${finalTime % 60} seconds`
+        : `${finalTime} seconds`;
         
       historyContext += `\nCurrent session just completed:\n`;
       historyContext += `  Topic: "${topic}"\n`;
@@ -152,7 +152,6 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
       }
     } catch (error) {
       console.error('Error fetching encouragement:', error);
-      // Fallback message if API fails
       setEncouragementMessage('Wonderful work! Your drawing has been saved. Keep enjoying the creative process!');
     } finally {
       setIsLoadingEncouragement(false);
@@ -252,18 +251,17 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
         date: new Date().toISOString().split('T')[0],
         timeOfDay: timeOfDay,
         thumbnail: imageData,
-        time: elapsedTime,
+        time: finalTime,
         accuracy: null,
       });
       localStorage.setItem('projects', JSON.stringify(projects));
     }
     
     setShowSaveAs(false);
-    
-    // Fetch personalized encouragement before showing results
-    await fetchEncouragement();
-    
     setShowResults(true);
+    
+    // Fetch personalized encouragement AFTER dialog is visible
+    await fetchEncouragement();
   };
 
   // Play audio when encouragement message is loaded
@@ -275,7 +273,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
 
   const handleCloseResults = () => {
     setShowResults(false);
-    setEncouragementMessage(''); // Reset for next session
+    setEncouragementMessage('');
     if (onNavigate) {
       onNavigate('projects');
     }
@@ -600,7 +598,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
                 <div className="flex items-center justify-center gap-2">
                   <Sparkles className="w-5 h-5 text-blue-500 animate-pulse" />
                   <p className="text-sm text-blue-600 dark:text-blue-400" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                    Generating personalized encouragement...
+                    Generating personalized message...
                   </p>
                 </div>
               </div>

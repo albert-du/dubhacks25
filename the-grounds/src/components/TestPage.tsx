@@ -43,8 +43,8 @@ export function TestPage({ onNavigate }: TestPageProps) {
       const projects = JSON.parse(localStorage.getItem('projects') || '[]');
       const testSessions = projects
         .filter((p: any) => p.type === 'Test')
-        .slice(0, 10) // Get last 10 test sessions
-        .reverse(); // Reverse to show oldest to newest
+        .slice(0, 10)
+        .reverse();
       
       // Format history context for the LLM
       let historyContext = 'User spiral test history:\n\n';
@@ -64,13 +64,13 @@ export function TestPage({ onNavigate }: TestPageProps) {
       }
       
       // Add current session info
-      const currentTimeFormatted = Math.floor(elapsedTime / 60) > 0 
-        ? `${Math.floor(elapsedTime / 60)} minutes ${elapsedTime % 60} seconds`
-        : `${elapsedTime} seconds`;
+      const currentTimeFormatted = Math.floor(finalTime / 60) > 0 
+        ? `${Math.floor(finalTime / 60)} minutes ${finalTime % 60} seconds`
+        : `${finalTime} seconds`;
         
       historyContext += `\nCurrent test just completed:\n`;
       historyContext += `  Time: ${currentTimeFormatted}\n`;
-      historyContext += `  Accuracy: ${accuracy.toFixed(1)}%\n`;
+      historyContext += `  Accuracy: ${finalAccuracy.toFixed(1)}%\n`;
       historyContext += `  Total tests completed: ${testSessions.length + 1}\n`;
       historyContext += '\nContext: This is a spiral tracing test used to track motor skills for individuals with Parkinson\'s disease. The test measures both accuracy and time. Focus on celebrating consistency, any improvements (especially in accuracy), and the commitment to regular tracking. Be encouraging about the importance of the data they\'re collecting for monitoring their progress over time.';
 
@@ -99,7 +99,6 @@ export function TestPage({ onNavigate }: TestPageProps) {
       }
     } catch (error) {
       console.error('Error fetching encouragement:', error);
-      // Fallback message if API fails
       setEncouragementMessage('Excellent work completing this test! Your consistent tracking helps monitor your progress over time.');
     } finally {
       setIsLoadingEncouragement(false);
@@ -161,23 +160,22 @@ export function TestPage({ onNavigate }: TestPageProps) {
         date: new Date().toISOString().split('T')[0],
         timeOfDay: timeOfDay,
         thumbnail: imageData,
-        time: elapsedTime,
-        accuracy: accuracy,
+        time: finalTime,
+        accuracy: finalAccuracy,
       });
       localStorage.setItem('projects', JSON.stringify(projects));
     }
     
     setShowSaveAs(false);
-    
-    // Fetch personalized encouragement before showing results
-    await fetchEncouragement();
-    
     setShowResults(true);
+    
+    // Fetch personalized encouragement AFTER dialog is visible
+    await fetchEncouragement();
   };
 
   const handleCloseResults = () => {
     setShowResults(false);
-    setEncouragementMessage(''); // Reset for next session
+    setEncouragementMessage('');
     if (onNavigate) {
       onNavigate('projects');
     }
