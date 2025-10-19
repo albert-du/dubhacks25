@@ -9,29 +9,22 @@ import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import { useUser } from './UserContext';
 import { colorOptions } from './colorOptions';
-
 interface PracticePageProps {
   onNavigate?: (page: string) => void;
 }
-
-
 // Commented out old templates - now using AI generation
 // const templates = [
 //   { name: 'Heart', value: 'heart' },
 //   { name: 'Star', value: 'star' },
 //   { name: 'Circle', value: 'circle' },
 //   { name: 'Daisy', value: 'daisy' },
-//   { name: 'Cloud', value: 'cloud' },
+//   { name: 'Cloud', 'value: 'cloud' },
 //   { name: 'Dog', value: 'dog' },
 //   { name: 'Music Note', value: 'musicNote' },
 // ];
-
-
 const CONGRATS_MESSAGE = "Great work! Your practice session has been saved. Keep practicing to improve your motor skills!";
 const ELEVEN_LABS_API_KEY = ""; //TODO: PUT IN API KEY WHEN NEEDED
 const VOICE_ID = "cgSgspJ2msm6clMCkdW9"; 
-
-
 const playCongratsMessage = async () => {
     try {
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
@@ -50,11 +43,9 @@ const playCongratsMessage = async () => {
           }
         })
       });
-
       if (!response.ok) {
         throw new Error('Failed to generate speech');
       }
-
       const audioBlob = await response.blob();
       const audio = new Audio(URL.createObjectURL(audioBlob));
       await audio.play();
@@ -62,9 +53,8 @@ const playCongratsMessage = async () => {
       console.error('Error playing congratulatory message:', error);
     }
   };
-
 export function PracticePage({ onNavigate }: PracticePageProps) {
-  const { name, email, setName, setEmail, isFirstTime, setIsFirstTime } = useUser();
+  const { isFirstTime } = useUser(); // Keep isFirstTime for context, but don't use it to trigger setup here
   const [showSetup, setShowSetup] = useState(true);
   const [topic, setTopic] = useState('');
   const [mode, setMode] = useState<'trace' | 'color'>('trace');
@@ -73,16 +63,10 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
   const [canvasKey, setCanvasKey] = useState(0);
   const [accuracy, setAccuracy] = useState(0);
   const canvasRef = useRef<DrawingCanvasRef>(null);
-
   // Custom color picker
   const [customColor, setCustomColor] = useState('#fa9da6');
   const [showColorPicker, setShowColorPicker] = useState(false);
   
-  // First time setup
-  const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
-  const [tempName, setTempName] = useState('');
-  const [tempEmail, setTempEmail] = useState('');
-
   // Timer states
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -95,19 +79,12 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
   const [finalAccuracy, setFinalAccuracy] = useState(0);
   const [projectName, setProjectName] = useState('');
   const [showSaveAs, setShowSaveAs] = useState(false);
-
   // AI Generation states
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  useEffect(() => {
-    if (isFirstTime && showSetup) {
-      setShowFirstTimeSetup(true);
-      setTempName(name);
-      setTempEmail(email);
-    }
-  }, []);
-
+  // Removed useEffect for first time setup
+  
   useEffect(() => {
     if (isRunning && !isPaused) {
       timerRef.current = window.setInterval(() => {
@@ -118,20 +95,17 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
         clearInterval(timerRef.current);
       }
     }
-
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
   }, [isRunning, isPaused]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-
   const generateImage = async (prompt: string) => {
     setIsGenerating(true);
     try {
@@ -143,11 +117,9 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
         },
         body: JSON.stringify({ prompt }),
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       // Backend returns { id: 'img_123', imageUrl: '/static/img_123.png' }
       // Static files are proxied through nginx to backend
@@ -162,16 +134,7 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
       setIsGenerating(false);
     }
   };
-
-  const handleFirstTimeSubmit = () => {
-    if (tempName.trim() && tempEmail.trim()) {
-      setName(tempName);
-      setEmail(tempEmail);
-      setIsFirstTime(false);
-      setShowFirstTimeSetup(false);
-    }
-  };
-
+  // Removed handleFirstTimeSubmit
   const handleStart = async () => {
     if (topic.trim()) {
       setProjectName(`Practice - ${topic}`);
@@ -183,24 +146,20 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
       }
     }
   };
-
   const handleFirstStroke = () => {
     if (!isRunning) {
       setIsRunning(true);
     }
   };
-
   const handlePause = () => {
     setIsPaused(!isPaused);
   };
-
   const handleDone = () => {
     setIsRunning(false);
     setFinalTime(elapsedTime);
     setFinalAccuracy(accuracy);
     setShowSaveAs(true);
   };
-
   const handleSaveProject = () => {
     const imageData = canvasRef.current?.getCanvasImage();
     const now = new Date();
@@ -225,14 +184,12 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     setShowResults(true);
     playCongratsMessage(); // Play the congratulatory message when drawing is saved
   };
-
   const handleCloseResults = () => {
     setShowResults(false);
     if (onNavigate) {
       onNavigate('projects');
     }
   };
-
   const handleReset = () => {
     setCanvasKey((prev) => prev + 1);
     setAccuracy(0);
@@ -240,19 +197,15 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     setIsRunning(false);
     setIsPaused(false);
   };
-
   const handleUndo = () => {
     canvasRef.current?.undo();
   };
-
   const handleRedo = () => {
     canvasRef.current?.redo();
   };
-
   const handleClear = () => {
     canvasRef.current?.clear();
   };
-
   const handleModeChange = (isTraceMode: boolean) => {
     const newMode = isTraceMode ? 'trace' : 'color';
     setMode(newMode);
@@ -262,14 +215,12 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
       setColor(customColor);
     }
   };
-
   const handleColorChange = (newColor: string) => {
     setCustomColor(newColor);
     if (mode === 'color') {
       setColor(newColor);
     }
   };
-
   if (showSetup) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#f3e2c6] to-[#fff6a4] dark:from-background dark:to-accent flex items-center justify-center p-4">
@@ -295,7 +246,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
                 AI will generate a practice tracing page based on your description
               </p>
             </div>
-
             <Button
               onClick={handleStart}
               disabled={isGenerating || !topic.trim()}
@@ -306,60 +256,11 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
             </Button>
           </div>
         </div>
-
-        {/* First Time Setup Dialog */}
-        <Dialog open={showFirstTimeSetup} onOpenChange={() => {}}>
-          <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
-                Welcome to The Grounds!
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p className="text-gray-600 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                Please provide your information to get started.
-              </p>
-              <div>
-                <Label htmlFor="setup-name" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                  Name
-                </Label>
-                <Input
-                  id="setup-name"
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  placeholder="Enter your name"
-                  style={{ fontFamily: 'Lexend, sans-serif' }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="setup-email" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                  Email
-                </Label>
-                <Input
-                  id="setup-email"
-                  type="email"
-                  value={tempEmail}
-                  onChange={(e) => setTempEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  style={{ fontFamily: 'Lexend, sans-serif' }}
-                />
-              </div>
-              <Button
-                onClick={handleFirstTimeSubmit}
-                disabled={!tempName.trim() || !tempEmail.trim()}
-                className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90"
-                style={{ fontFamily: 'Lexend, sans-serif' }}
-              >
-                Get Started
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
-
   return (
+    // ... rest of PracticePage JSX
     <div className="flex flex-col bg-[#f3e2c6] dark:bg-background" style={{ height: 'calc(100vh - 73px)' }}>
       {/* Top Bar */}
       <div className="bg-[#fff6a4] dark:bg-accent p-4 border-b-2 border-[#fa9da6] dark:border-secondary">
@@ -402,7 +303,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
           </div>
         </div>
       </div>
-
       {/* Canvas Area */}
       <div className="flex-1 p-8">
         <div className="h-full bg-white dark:bg-card rounded-xl shadow-lg border-4 border-[#fa9da6] dark:border-secondary overflow-hidden">
@@ -419,7 +319,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
           />
         </div>
       </div>
-
       {/* Toolbox */}
       <div className="bg-white dark:bg-card border-t-4 border-[#fa9da6] dark:border-secondary p-4">
         <div className="max-w-4xl mx-auto space-y-4">
@@ -436,7 +335,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
               Color Mode
             </Label>
           </div>
-
           {/* Controls */}
           <div className="flex items-center justify-between">
             {/* Left: Color controls */}
@@ -475,7 +373,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
                       />
                     </div>
                   )}
-
                   <div className="flex items-center gap-2">
                     <span style={{ fontFamily: 'Lexend, sans-serif' }} className="dark:text-foreground">Size:</span>
                     <Slider
@@ -497,7 +394,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
                 </div>
               )}
             </div>
-
             {/* Right: Action buttons */}
             <div className="flex items-center gap-2">
               <Button
@@ -544,7 +440,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
           </div>
         </div>
       </div>
-
       {/* Save As Dialog */}
       <Dialog open={showSaveAs} onOpenChange={setShowSaveAs}>
         <DialogContent className="sm:max-w-md">
@@ -586,7 +481,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* Results Dialog */}
       <Dialog open={showResults} onOpenChange={handleCloseResults}>
         <DialogContent className="sm:max-w-md">

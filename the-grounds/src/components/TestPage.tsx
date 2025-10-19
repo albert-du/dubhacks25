@@ -12,16 +12,14 @@ interface TestPageProps {
 }
 
 export function TestPage({ onNavigate }: TestPageProps) {
-  const { name, email, setName, setEmail, isFirstTime, setIsFirstTime } = useUser();
+  // Removed name, email, setName, setEmail, isFirstTime, setIsFirstTime from useUser destructuring
+  const { } = useUser();
   const [color] = useState('#000000');
   const [lineWidth] = useState(3);
   const [accuracy, setAccuracy] = useState(0);
   const canvasRef = useRef<DrawingCanvasRef>(null);
   
-  // First time setup
-  const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
-  const [tempName, setTempName] = useState('');
-  const [tempEmail, setTempEmail] = useState('');
+  // Removed First time setup state (showFirstTimeSetup, tempName, tempEmail)
 
   // Timer states
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -36,13 +34,14 @@ export function TestPage({ onNavigate }: TestPageProps) {
   const [projectName, setProjectName] = useState('Spiral Test');
   const [showSaveAs, setShowSaveAs] = useState(false);
 
-  useEffect(() => {
-    if (isFirstTime) {
-      setShowFirstTimeSetup(true);
-      setTempName(name);
-      setTempEmail(email);
-    }
-  }, []);
+  // Removed useEffect for first time setup
+  // useEffect(() => {
+  //     if (isFirstTime) {
+  //       setShowFirstTimeSetup(true);
+  //       setTempName(name);
+  //       setTempEmail(email);
+  //     }
+  // }, []);
 
   useEffect(() => {
     if (isRunning && !isPaused) {
@@ -68,14 +67,15 @@ export function TestPage({ onNavigate }: TestPageProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleFirstTimeSubmit = () => {
-    if (tempName.trim() && tempEmail.trim()) {
-      setName(tempName);
-      setEmail(tempEmail);
-      setIsFirstTime(false);
-      setShowFirstTimeSetup(false);
-    }
-  };
+  // Removed handleFirstTimeSubmit function
+  // const handleFirstTimeSubmit = () => {
+  //     if (tempName.trim() && tempEmail.trim()) {
+  //       setName(tempName);
+  //       setEmail(tempEmail);
+  //       setIsFirstTime(false);
+  //       setShowFirstTimeSetup(false);
+  //     }
+  // };
 
   const handleFirstStroke = () => {
     if (!isRunning) {
@@ -227,54 +227,7 @@ export function TestPage({ onNavigate }: TestPageProps) {
         </div>
       </div>
 
-      {/* First Time Setup Dialog */}
-      <Dialog open={showFirstTimeSetup} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
-              Welcome to The Grounds!
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-gray-600 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-              Please provide your information to get started.
-            </p>
-            <div>
-              <Label htmlFor="setup-name" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                Name
-              </Label>
-              <Input
-                id="setup-name"
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                placeholder="Enter your name"
-                style={{ fontFamily: 'Lexend, sans-serif' }}
-              />
-            </div>
-            <div>
-              <Label htmlFor="setup-email" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                Email
-              </Label>
-              <Input
-                id="setup-email"
-                type="email"
-                value={tempEmail}
-                onChange={(e) => setTempEmail(e.target.value)}
-                placeholder="Enter your email"
-                style={{ fontFamily: 'Lexend, sans-serif' }}
-              />
-            </div>
-            <Button
-              onClick={handleFirstTimeSubmit}
-              disabled={!tempName.trim() || !tempEmail.trim()}
-              className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90"
-              style={{ fontFamily: 'Lexend, sans-serif' }}
-            >
-              Get Started
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Removed First Time Setup Dialog */}
 
       {/* Save As Dialog */}
       <Dialog open={showSaveAs} onOpenChange={setShowSaveAs}>

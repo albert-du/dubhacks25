@@ -16,17 +16,18 @@ interface PlayPageProps {
 
 // Commented out old templates - now using AI generation
 // const templates = [
-//   { name: 'Heart', value: 'heart' },
-//   { name: 'Star', value: 'star' },
-//   { name: 'Circle', value: 'circle' },
-//   { name: 'Daisy', value: 'daisy' },
-//   { name: 'Cloud', value: 'cloud' },
-//   { name: 'Dog', value: 'dog' },
-//   { name: 'Music Note', value: 'musicNote' },
+//   { name: 'Heart', value: 'heart' },
+//   { name: 'Star', value: 'star' },
+//   { name: 'Circle', value: 'circle' },
+//   { name: 'Daisy', value: 'daisy' },
+//   { name: 'Cloud', value: 'cloud' },
+//   { name: 'Dog', value: 'dog' },
+//   { name: 'Music Note', value: 'musicNote' },
 // ];
 
 export function PlayPage({ onNavigate }: PlayPageProps) {
-  const { name, email, setName, setEmail, isFirstTime, setIsFirstTime } = useUser();
+  // Removed name, email, setName, setEmail, isFirstTime, setIsFirstTime from useUser destructuring
+  const { } = useUser();
   const [showSetup, setShowSetup] = useState(true);
   const [topic, setTopic] = useState('');
   const [mode, setMode] = useState<'trace' | 'color'>('trace');
@@ -43,10 +44,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
   const [customColor, setCustomColor] = useState('#fa9da6');
   const [showColorPicker, setShowColorPicker] = useState(false);
   
-  // First time setup
-  const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
-  const [tempName, setTempName] = useState('');
-  const [tempEmail, setTempEmail] = useState('');
+  // Removed First time setup state (showFirstTimeSetup, tempName, tempEmail)
 
   // Timer states
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -98,36 +96,9 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
     }
   };
 
-  useEffect(() => {
-    if (isFirstTime && showSetup) {
-      setShowFirstTimeSetup(true);
-      setTempName(name);
-      setTempEmail(email);
-    }
-  }, []);
-
+  // Removed useEffect for first time setup
+  
   // Updated useEffect for timer with simplified cleanup
-  useEffect(() => {
-    if (isRunning && !isPaused) {
-      timerRef.current = window.setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [isRunning, isPaused]);
-
-  useEffect(() => {
-    if (isFirstTime && showSetup) {
-      setShowFirstTimeSetup(true);
-      setTempName(name);
-      setTempEmail(email);
-    }
-  }, []);
-
   useEffect(() => {
     if (isRunning && !isPaused) {
       timerRef.current = window.setInterval(() => {
@@ -183,14 +154,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
     }
   };
 
-  const handleFirstTimeSubmit = () => {
-    if (tempName.trim() && tempEmail.trim()) {
-      setName(tempName);
-      setEmail(tempEmail);
-      setIsFirstTime(false);
-      setShowFirstTimeSetup(false);
-    }
-  };
+  // Removed handleFirstTimeSubmit function
 
   const handleStart = async () => {
     if (topic.trim()) {
@@ -313,7 +277,6 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
             </div>
 
 
-
             <Button
               onClick={handleStart}
               disabled={isGenerating || !topic.trim()}
@@ -325,54 +288,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
           </div>
         </div>
 
-        {/* First Time Setup Dialog */}
-        <Dialog open={showFirstTimeSetup} onOpenChange={() => {}}>
-          <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
-                Welcome to The Grounds!
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p className="text-gray-600 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                Please provide your information to get started.
-              </p>
-              <div>
-                <Label htmlFor="setup-name" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                  Name
-                </Label>
-                <Input
-                  id="setup-name"
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  placeholder="Enter your name"
-                  style={{ fontFamily: 'Lexend, sans-serif' }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="setup-email" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                  Email
-                </Label>
-                <Input
-                  id="setup-email"
-                  type="email"
-                  value={tempEmail}
-                  onChange={(e) => setTempEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  style={{ fontFamily: 'Lexend, sans-serif' }}
-                />
-              </div>
-              <Button
-                onClick={handleFirstTimeSubmit}
-                disabled={!tempName.trim() || !tempEmail.trim()}
-                className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90"
-                style={{ fontFamily: 'Lexend, sans-serif' }}
-              >
-                Get Started
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Removed First Time Setup Dialog */}
       </div>
     );
   }
