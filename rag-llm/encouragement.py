@@ -51,11 +51,9 @@ DATA_PATH = Path(os.getenv("DATA_PATH"), "data")
 # LLM setup
 llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
 
-vector_store = chromadb.CloudClient(
-  api_key='ck-6iCLE4AavuLwkwMnrMUSpoyNTNoHLDAAbdK6xHWq3mDA',
-  tenant='704e10a8-c428-4075-8e60-cff6b7a42782',
-  database='personal-db'
-)
+# vector_store = chromadb.CloudClient(
+  
+# not rn
 
 # pdf reader
 loader = PyPDFLoader('data/Mistreatment & Misconduct_FINAL.pdf')
