@@ -23,6 +23,26 @@ services:
     networks:
       - the-grounds-network
 
+  # Flask LLM Encouragement API (Quickly Done)
+  llm-api:
+    build:
+      context: ./llm
+      dockerfile: Dockerfile
+    container_name: the-grounds-llm
+    ports:
+      - "5001:5001"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/encourage", "-X", "POST", "-H", "Content-Type: application/json", "-d", "{\"history_context\":\"test\"}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - the-grounds-network
+
   # Vite + React Frontend
   frontend:
     build:
@@ -33,8 +53,10 @@ services:
       - "3000:3000"
     environment:
       - VITE_API_URL=/api
+      - VITE_LLM_API_URL=http://localhost:5001
     depends_on:
       - backend
+      - llm-api
     restart: unless-stopped
     networks:
       - the-grounds-network

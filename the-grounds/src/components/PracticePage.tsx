@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Undo, Redo, Eraser, RotateCcw, Pause, Play } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Undo, Redo, Eraser, RotateCcw, Pause, Play, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DrawingCanvas, DrawingCanvasRef } from './DrawingCanvas';
-import { Switch } from './ui/switch';
-import { Slider } from './ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { useUser } from './UserContext';
 import { colorOptions } from './colorOptions';
 
@@ -14,55 +14,11 @@ interface PracticePageProps {
   onNavigate?: (page: string) => void;
 }
 
-// Commented out old templates - now using AI generation
-// const templates = [
-//   { name: 'Heart', value: 'heart' },
-//   { name: 'Star', value: 'star' },
-//   { name: 'Circle', value: 'circle' },
-//   { name: 'Daisy', value: 'daisy' },
-//   { name: 'Cloud', 'value: 'cloud' },
-//   { name: 'Dog', value: 'dog' },
-//   { name: 'Music Note', value: 'musicNote' },
-// ];
-
-const CONGRATS_MESSAGE = "Great work! Your practice session has been saved. Keep practicing to improve your motor skills!";
 const ELEVEN_LABS_API_KEY = ""; //TODO: PUT IN API KEY WHEN NEEDED
 const VOICE_ID = "cgSgspJ2msm6clMCkdW9"; 
 
-const playCongratsMessage = async () => {
-    try {
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVEN_LABS_API_KEY
-        },
-        body: JSON.stringify({
-          text: CONGRATS_MESSAGE,
-          model_id: 'eleven_monolingual_v1',
-          voice_settings: {
-            stability: 0.75,
-            similarity_boost: 0.75
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate speech');
-      }
-
-      const audioBlob = await response.blob();
-      const audio = new Audio(URL.createObjectURL(audioBlob));
-      await audio.play();
-
-    } catch (error) {
-      console.error('Error playing congratulatory message:', error);
-    }
-  };
-
 export function PracticePage({ onNavigate }: PracticePageProps) {
-  const { isFirstTime } = useUser(); // Keep isFirstTime for context, but don't use it to trigger setup here
+  const { isFirstTime } = useUser();
   const [showSetup, setShowSetup] = useState(true);
   const [topic, setTopic] = useState('');
   const [mode, setMode] = useState<'trace' | 'color'>('trace');
@@ -93,8 +49,119 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Removed useEffect for first time setup
-  
+  // LLM Encouragement state
+  const [encouragementMessage, setEncouragementMessage] = useState('');
+  const [isLoadingEncouragement, setIsLoadingEncouragement] = useState(false);
+
+  const playCongratsMessage = async (message: string) => {
+    if (!ELEVEN_LABS_API_KEY) {
+      console.log('ElevenLabs API key not set, skipping audio');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': ELEVEN_LABS_API_KEY
+        },
+        body: JSON.stringify({
+          text: message,
+          model_id: 'eleven_monolingual_v1',
+          voice_settings: {
+            stability: 0.75,
+            similarity_boost: 0.75
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audio = new Audio(URL.createObjectURL(audioBlob));
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing congratulatory message:', error);
+    }
+  };
+
+  // Function to fetch personalized encouragement from LLM
+  const fetchEncouragement = async () => {
+    setIsLoadingEncouragement(true);
+    try {
+      // Get previous practice sessions from localStorage
+      const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+      const practiceSessions = projects
+        .filter((p: any) => p.type === 'Practice')
+        .slice(0, 10) // Get last 10 practice sessions
+        .reverse(); // Reverse to show oldest to newest
+      
+      // Format history context for the LLM
+      let historyContext = 'User practice tracing history:\n\n';
+      
+      if (practiceSessions.length === 0) {
+        historyContext += 'This is the user\'s very first practice session! Welcome them warmly and encourage them on their motor skills practice journey.\n';
+      } else {
+        historyContext += `Past practice sessions (from oldest to most recent):\n`;
+        practiceSessions.forEach((session: any, index: number) => {
+          const sessionNum = index + 1;
+          const topicName = session.name.replace('Practice - ', '');
+          const timeFormatted = Math.floor(session.time / 60) > 0 
+            ? `${Math.floor(session.time / 60)}m ${session.time % 60}s`
+            : `${session.time}s`;
+          
+          historyContext += `  ${sessionNum}. "${topicName}" - Time: ${timeFormatted}, Accuracy: ${session.accuracy}% (${session.date})\n`;
+        });
+      }
+      
+      // Add current session info
+      const currentTimeFormatted = Math.floor(elapsedTime / 60) > 0 
+        ? `${Math.floor(elapsedTime / 60)} minutes ${elapsedTime % 60} seconds`
+        : `${elapsedTime} seconds`;
+        
+      historyContext += `\nCurrent practice session just completed:\n`;
+      historyContext += `  Topic: "${topic}"\n`;
+      historyContext += `  Time: ${currentTimeFormatted}\n`;
+      historyContext += `  Accuracy: ${accuracy.toFixed(1)}%\n`;
+      historyContext += `  Total practice sessions completed: ${practiceSessions.length + 1}\n`;
+      historyContext += '\nContext: This is a practice tracing mode for individuals with Parkinson\'s disease to work on motor control and precision. Unlike the relaxed Play mode, Practice mode tracks accuracy to help users see their improvement. Focus on celebrating progress in accuracy, consistency in practice, and the dedication to skill-building. Be encouraging about both the choice of practice topics and any improvements in performance.';
+
+      // Call your Flask LLM API
+      const llmApiUrl = import.meta.env.VITE_LLM_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${llmApiUrl}/api/encourage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          history_context: historyContext
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.message) {
+        setEncouragementMessage(data.message);
+      } else {
+        setEncouragementMessage('Great work! Your practice session has been saved. Keep practicing to improve your motor skills!');
+      }
+    } catch (error) {
+      console.error('Error fetching encouragement:', error);
+      // Fallback message if API fails
+      setEncouragementMessage('Great work! Your practice session has been saved. Keep practicing to improve your motor skills!');
+    } finally {
+      setIsLoadingEncouragement(false);
+    }
+  };
+
   useEffect(() => {
     if (isRunning && !isPaused) {
       timerRef.current = window.setInterval(() => {
@@ -111,6 +178,13 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
       }
     };
   }, [isRunning, isPaused]);
+
+  // Play audio when encouragement message is loaded
+  useEffect(() => {
+    if (encouragementMessage && showResults && !isLoadingEncouragement) {
+      playCongratsMessage(encouragementMessage);
+    }
+  }, [encouragementMessage, showResults, isLoadingEncouragement]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -133,8 +207,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      // Backend returns { id: 'img_123', imageUrl: '/static/img_123.png' }
-      // Static files are proxied through nginx to backend
       const fullImageUrl = `${apiUrl}${data.imageUrl}`;
       setGeneratedImageUrl(fullImageUrl);
       return fullImageUrl;
@@ -147,12 +219,10 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     }
   };
 
-  // Removed handleFirstTimeSubmit
   const handleStart = async () => {
     if (topic.trim()) {
       setProjectName(`Practice - ${topic}`);
       
-      // Generate AI image from the prompt
       const imageUrl = await generateImage(topic);
       if (imageUrl) {
         setShowSetup(false);
@@ -177,7 +247,7 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     setShowSaveAs(true);
   };
 
-  const handleSaveProject = () => {
+  const handleSaveProject = async () => {
     const imageData = canvasRef.current?.getCanvasImage();
     const now = new Date();
     const timeOfDay = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -198,12 +268,16 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
     }
     
     setShowSaveAs(false);
+    
+    // Fetch personalized encouragement before showing results
+    await fetchEncouragement();
+    
     setShowResults(true);
-    playCongratsMessage(); // Play the congratulatory message when drawing is saved
   };
 
   const handleCloseResults = () => {
     setShowResults(false);
+    setEncouragementMessage(''); // Reset for next session
     if (onNavigate) {
       onNavigate('projects');
     }
@@ -230,7 +304,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
   };
 
   const handleModeChange = (isColorModeEnabled: boolean) => {
-    // If the switch is ON (checked/true), the mode is 'color'. Otherwise, it's 'trace'.
     const newMode = isColorModeEnabled ? 'color' : 'trace'; 
     setMode(newMode);
     
@@ -349,7 +422,6 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
             </Label>
             <Switch
               checked={mode === 'color'} 
-              // `onCheckedChange` passes `isColorModeEnabled` to the handler now
               onCheckedChange={handleModeChange} 
             />
             <Label className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
@@ -510,7 +582,8 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
       <Dialog open={showResults} onOpenChange={handleCloseResults}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+            <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3] flex items-center gap-2" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+              <Sparkles className="w-6 h-6 text-yellow-500" />
               Practice Complete!
             </DialogTitle>
           </DialogHeader>
@@ -533,9 +606,24 @@ export function PracticePage({ onNavigate }: PracticePageProps) {
                 </p>
               </div>
             </div>
-            <p className="text-sm text-gray-600 dark:text-muted-foreground text-center" style={{ fontFamily: 'Lexend, sans-serif' }}>
-              {CONGRATS_MESSAGE}
-            </p>
+            
+            {isLoadingEncouragement ? (
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-500 animate-pulse" />
+                  <p className="text-sm text-purple-600 dark:text-purple-400" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                    Generating personalized encouragement...
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border-2 border-purple-200 dark:border-purple-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300 text-center leading-relaxed" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                  {encouragementMessage || 'Great work! Your practice session has been saved. Keep practicing to improve your motor skills!'}
+                </p>
+              </div>
+            )}
+            
             <Button
               onClick={handleCloseResults}
               className="w-full bg-[#fa9da6] hover:bg-[#e88a95] dark:bg-secondary dark:hover:bg-secondary/90"

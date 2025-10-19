@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Undo, Redo, Eraser, Pause, Play } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
+import { Undo, Redo, Eraser, Pause, Play, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { DrawingCanvas, DrawingCanvasRef } from './DrawingCanvas';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useUser } from './UserContext';
 
 interface TestPageProps {
@@ -12,14 +12,11 @@ interface TestPageProps {
 }
 
 export function TestPage({ onNavigate }: TestPageProps) {
-  // Removed name, email, setName, setEmail, isFirstTime, setIsFirstTime from useUser destructuring
   const { } = useUser();
   const [color] = useState('#000000');
   const [lineWidth] = useState(3);
   const [accuracy, setAccuracy] = useState(0);
   const canvasRef = useRef<DrawingCanvasRef>(null);
-  
-  // Removed First time setup state (showFirstTimeSetup, tempName, tempEmail)
 
   // Timer states
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -34,14 +31,80 @@ export function TestPage({ onNavigate }: TestPageProps) {
   const [projectName, setProjectName] = useState('Spiral Test');
   const [showSaveAs, setShowSaveAs] = useState(false);
 
-  // Removed useEffect for first time setup
-  // useEffect(() => {
-  //     if (isFirstTime) {
-  //       setShowFirstTimeSetup(true);
-  //       setTempName(name);
-  //       setTempEmail(email);
-  //     }
-  // }, []);
+  // LLM Encouragement state
+  const [encouragementMessage, setEncouragementMessage] = useState('');
+  const [isLoadingEncouragement, setIsLoadingEncouragement] = useState(false);
+
+  // Function to fetch personalized encouragement from LLM
+  const fetchEncouragement = async () => {
+    setIsLoadingEncouragement(true);
+    try {
+      // Get previous test sessions from localStorage
+      const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+      const testSessions = projects
+        .filter((p: any) => p.type === 'Test')
+        .slice(0, 10) // Get last 10 test sessions
+        .reverse(); // Reverse to show oldest to newest
+      
+      // Format history context for the LLM
+      let historyContext = 'User spiral test history:\n\n';
+      
+      if (testSessions.length === 0) {
+        historyContext += 'This is the user\'s very first spiral test! Welcome them warmly and encourage them on their motor skills tracking journey.\n';
+      } else {
+        historyContext += `Past test sessions (from oldest to most recent):\n`;
+        testSessions.forEach((session: any, index: number) => {
+          const sessionNum = index + 1;
+          const timeFormatted = Math.floor(session.time / 60) > 0 
+            ? `${Math.floor(session.time / 60)}m ${session.time % 60}s`
+            : `${session.time}s`;
+          
+          historyContext += `  ${sessionNum}. Time: ${timeFormatted}, Accuracy: ${session.accuracy}% (${session.date})\n`;
+        });
+      }
+      
+      // Add current session info
+      const currentTimeFormatted = Math.floor(elapsedTime / 60) > 0 
+        ? `${Math.floor(elapsedTime / 60)} minutes ${elapsedTime % 60} seconds`
+        : `${elapsedTime} seconds`;
+        
+      historyContext += `\nCurrent test just completed:\n`;
+      historyContext += `  Time: ${currentTimeFormatted}\n`;
+      historyContext += `  Accuracy: ${accuracy.toFixed(1)}%\n`;
+      historyContext += `  Total tests completed: ${testSessions.length + 1}\n`;
+      historyContext += '\nContext: This is a spiral tracing test used to track motor skills for individuals with Parkinson\'s disease. The test measures both accuracy and time. Focus on celebrating consistency, any improvements (especially in accuracy), and the commitment to regular tracking. Be encouraging about the importance of the data they\'re collecting for monitoring their progress over time.';
+
+      // Call your Flask LLM API
+      const llmApiUrl = import.meta.env.VITE_LLM_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${llmApiUrl}/api/encourage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          history_context: historyContext
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.message) {
+        setEncouragementMessage(data.message);
+      } else {
+        setEncouragementMessage('Excellent work completing this test! Your consistent tracking helps monitor your progress over time.');
+      }
+    } catch (error) {
+      console.error('Error fetching encouragement:', error);
+      // Fallback message if API fails
+      setEncouragementMessage('Excellent work completing this test! Your consistent tracking helps monitor your progress over time.');
+    } finally {
+      setIsLoadingEncouragement(false);
+    }
+  };
 
   useEffect(() => {
     if (isRunning && !isPaused) {
@@ -67,16 +130,6 @@ export function TestPage({ onNavigate }: TestPageProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Removed handleFirstTimeSubmit function
-  // const handleFirstTimeSubmit = () => {
-  //     if (tempName.trim() && tempEmail.trim()) {
-  //       setName(tempName);
-  //       setEmail(tempEmail);
-  //       setIsFirstTime(false);
-  //       setShowFirstTimeSetup(false);
-  //     }
-  // };
-
   const handleFirstStroke = () => {
     if (!isRunning) {
       setIsRunning(true);
@@ -94,7 +147,7 @@ export function TestPage({ onNavigate }: TestPageProps) {
     setShowSaveAs(true);
   };
 
-  const handleSaveProject = () => {
+  const handleSaveProject = async () => {
     const imageData = canvasRef.current?.getCanvasImage();
     const now = new Date();
     const timeOfDay = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -115,11 +168,16 @@ export function TestPage({ onNavigate }: TestPageProps) {
     }
     
     setShowSaveAs(false);
+    
+    // Fetch personalized encouragement before showing results
+    await fetchEncouragement();
+    
     setShowResults(true);
   };
 
   const handleCloseResults = () => {
     setShowResults(false);
+    setEncouragementMessage(''); // Reset for next session
     if (onNavigate) {
       onNavigate('projects');
     }
@@ -227,8 +285,6 @@ export function TestPage({ onNavigate }: TestPageProps) {
         </div>
       </div>
 
-      {/* Removed First Time Setup Dialog */}
-
       {/* Save As Dialog */}
       <Dialog open={showSaveAs} onOpenChange={setShowSaveAs}>
         <DialogContent className="sm:max-w-md">
@@ -275,7 +331,8 @@ export function TestPage({ onNavigate }: TestPageProps) {
       <Dialog open={showResults} onOpenChange={handleCloseResults}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+            <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3] flex items-center gap-2" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+              <Sparkles className="w-6 h-6 text-yellow-500" />
               Test Complete!
             </DialogTitle>
           </DialogHeader>
@@ -298,9 +355,28 @@ export function TestPage({ onNavigate }: TestPageProps) {
                 </p>
               </div>
             </div>
-            <p className="text-sm text-gray-600 dark:text-muted-foreground text-center" style={{ fontFamily: 'Lexend, sans-serif' }}>
-              Great job! Your test results have been saved. You can review your progress in the Profile section.
+            
+            {isLoadingEncouragement ? (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <Sparkles className="w-5 h-5 text-blue-500 animate-pulse" />
+                  <p className="text-sm text-blue-600 dark:text-blue-400" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                    Analyzing your progress...
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg p-4 border-2 border-green-200 dark:border-green-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300 text-center leading-relaxed" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                  {encouragementMessage || 'Excellent work completing this test! Your consistent tracking helps monitor your progress over time.'}
+                </p>
+              </div>
+            )}
+            
+            <p className="text-xs text-gray-500 dark:text-muted-foreground text-center" style={{ fontFamily: 'Lexend, sans-serif' }}>
+              You can review your progress trends in the Profile section.
             </p>
+            
             <Button
               onClick={handleCloseResults}
               className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90"
