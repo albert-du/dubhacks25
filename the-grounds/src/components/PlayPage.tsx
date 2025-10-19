@@ -300,14 +300,9 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
       <div className="bg-[#86b19c] dark:bg-primary p-4 border-b-2 border-[#fa9da6] dark:border-secondary">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6 flex-1">
-            <p className="text-white dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+            <p className="text-center text-white dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
               Play mode: Relax and enjoy drawing with self-correcting assistance
             </p>
-            <div className="bg-white dark:bg-card px-4 py-2 rounded-lg border-2 border-white dark:border-border">
-              <p className="text-sm text-gray-600 dark:text-muted-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
-                Time: <span className="text-lg font-bold text-[#527a62] dark:text-[#9cc9b3]">{formatTime(elapsedTime)}</span>
-              </p>
-            </div>
           </div>
           <div className="flex items-center gap-4">
             <Button
