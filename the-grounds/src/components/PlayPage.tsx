@@ -300,7 +300,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
       <div className="bg-[#86b19c] dark:bg-primary p-4 border-b-2 border-[#fa9da6] dark:border-secondary">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6 flex-1">
-            <p className="text-center text-white dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
+            <p className="text-white dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif' }}>
               Play mode: Relax and enjoy drawing with self-correcting assistance
             </p>
           </div>
