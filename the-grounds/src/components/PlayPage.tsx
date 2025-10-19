@@ -60,14 +60,12 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
   const [projectName, setProjectName] = useState('');
   const [showSaveAs, setShowSaveAs] = useState(false);
 
-  
-  // Congrats message and API key
-  const CONGRATS_MESSAGE = "Wonderful work! Your drawing has been saved. Keep enjoying the creative process!";
-  const ELEVEN_LABS_API_KEY = ""; // TODO: PUT IN API KEY WHEN NEEDED
-  const VOICE_ID = "cgSgspJ2msm6clMCkdW9"; 
+  const CONGRATS_MESSAGE = " Wonderful work! Your drawing has been saved. Keep enjoying the creative process!"
+const ELEVEN_LABS_API_KEY = ""; //TODO: PUT IN API KEY WHEN NEEDED
+const VOICE_ID = "cgSgspJ2msm6clMCkdW9"; 
 
 
-  const playCongratsMessage = async () => {
+const playCongratsMessage = async () => {
     try {
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
         method: 'POST',
@@ -97,28 +95,6 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
       console.error('Error playing congratulatory message:', error);
     }
   };
-
-  useEffect(() => {
-    if (isFirstTime && showSetup) {
-      setShowFirstTimeSetup(true);
-      setTempName(name);
-      setTempEmail(email);
-    }
-  }, []);
-
-  // Updated useEffect for timer with simplified cleanup
-  useEffect(() => {
-    if (isRunning && !isPaused) {
-      timerRef.current = window.setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [isRunning, isPaused]);
 
   useEffect(() => {
     if (isFirstTime && showSetup) {
@@ -216,6 +192,7 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
     setIsRunning(false);
     setFinalTime(elapsedTime);
     setShowSaveAs(true);
+    playCongratsMessage();
   };
 
   const handleSaveProject = () => {
@@ -240,7 +217,6 @@ export function PlayPage({ onNavigate }: PlayPageProps) {
     
     setShowSaveAs(false);
     setShowResults(true);
-    playCongratsMessage(); // Play the congratulatory message when drawing is saved
   };
 
   const handleCloseResults = () => {
