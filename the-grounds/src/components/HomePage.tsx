@@ -5,14 +5,17 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { useUser } from './UserContext'; // Assuming useUser is available
+
 interface HomePageProps {
   onNavigate: (page: 'test' | 'practice' | 'play') => void;
 }
+
 export function HomePage({ onNavigate }: HomePageProps) {
   const { name, email, setName, setEmail, isFirstTime, setIsFirstTime } = useUser();
   const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
   const [tempName, setTempName] = useState('');
   const [tempEmail, setTempEmail] = useState('');
+
   useEffect(() => {
     // Only show setup if it's the first time
     if (isFirstTime) {
@@ -21,6 +24,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       setTempEmail(email);
     }
   }, [isFirstTime, name, email]);
+
   const handleFirstTimeSubmit = () => {
     if (tempName.trim() && tempEmail.trim()) {
       setName(tempName);
@@ -29,6 +33,14 @@ export function HomePage({ onNavigate }: HomePageProps) {
       setShowFirstTimeSetup(false); // Close the dialog
     }
   };
+
+  // Define the resources data for cleaner rendering
+  const resources = [
+    { name: "Parkinson’s Foundation Resources & Support", href: "https://www.parkinson.org/resources-support" },
+    { name: "Northwest Parkinson’s Foundation", href: "https://nwpf.org" },
+    { name: "Michael J. Fox Foundation", href: "https://www.michaeljfox.org" },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e8dcc8] via-[#f0d5d8] to-[#e5c4c9] dark:bg-gradient-to-br dark:from-[#1a1a1a] dark:via-[#2a2020] dark:to-[#2a1a1a] p-8">
       <div className="max-w-6xl mx-auto">
@@ -41,6 +53,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             A fun and interactive space designed to help you practice fine motor skills through drawing and coloring. Choose an activity below to get started.
           </p>
         </div>
+
         {/* Activity Cards */}
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {/* Test Card */}
@@ -89,9 +102,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </p>
           </button>
         </div>
-        {/* Footer Info */}
-        <div className="mt-16 text-center">
-          <div className="bg-white/80 dark:bg-[#2a2a2a]/80 backdrop-blur-sm rounded-2xl p-6 max-w-3xl mx-auto border-2 border-white dark:border-[#3a3a3a]">
+
+        {/* Footer Info - Light/Dark Mode Fixed */}
+        <div className="mt-16 mb-20 text-center ">
+          <div className="bg-white dark:bg-[#2a2a2a] backdrop-blur-sm rounded-2xl p-6 max-w-3xl mx-auto shadow-xl border border-gray-100 dark:border-gray-800">
             <h3 className="mb-4 text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
               About The Grounds
             </h3>
@@ -100,53 +114,84 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </p>
           </div>
         </div>
+        <div className="h-12" />
+        {/* Resources Section - Arranged Horizontally */}
+        <div className="text-center">
+          <div className="bg-white dark:bg-[#2a2a2a] backdrop-blur-sm rounded-2xl p-8 max-w-3xl mx-auto shadow-xl border border-gray-100 dark:border-gray-800">
+            <h3 className="mb-4 text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+              Helpful Resources
+            </h3>
+            <p className="text-gray-700 dark:text-gray-400 max-w-2xl mx-auto text-base mb-8" style={{ fontFamily: 'Lexend, sans-serif' }}>
+              If you or a loved one are looking for more information and support regarding Parkinson's disease, here are some trusted resources:
+            </p>
+            <div className="h-4" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
+              {resources.map((resource, index) => (
+                <div key={index} className="flex flex-col items-center space-y-3">
+                  <h4 className="text-sm font-semibold text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif' }}>
+                    {resource.name}
+                  </h4>
+                  <button
+                    onClick={() => window.open(resource.href, '_blank')}
+                    className="px-4 py-2 bg-white dark:bg-[#2a2a2a] text-[#527a62] dark:text-[#9cc9b3] rounded-lg 
+            transition-all hover:scale-105 border-2 border-[#86b19c] dark:border-[#9cc9b3] text-xs"
+                    style={{ fontFamily: 'Lexend, sans-serif' }}
+                  >
+                    Visit Website
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
       {/* First Time Setup Dialog - Moved from PracticePage */}
       <Dialog open={showFirstTimeSetup} onOpenChange={() => {}}>
-          <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
-            <DialogHeader>
-              <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
-                Please provide your information to get started.
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
+        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-[#527a62] dark:text-[#9cc9b3]" style={{ fontFamily: 'Lexend, sans-serif', fontWeight: '700' }}>
+              Please provide your information to get started.
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
 
-              <div>
-                <Label htmlFor="setup-name" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif', marginBottom: '12px' }}>
-                  Name
-                </Label>
-                <Input
-                  id="setup-name"
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  placeholder="Enter your name"
-                  style={{ fontFamily: 'Lexend, sans-serif' }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="setup-email" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif', marginBottom: '12px' }}>
-                  Email
-                </Label>
-                <Input
-                  id="setup-email"
-                  type="email"
-                  value={tempEmail}
-                  onChange={(e) => setTempEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  style={{ fontFamily: 'Lexend, sans-serif' }}
-                />
-              </div>
-              <Button
-                onClick={handleFirstTimeSubmit}
-                disabled={!tempName.trim() || !tempEmail.trim()}
-                className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90"
+            <div>
+              <Label htmlFor="setup-name" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif', marginBottom: '12px' }}>
+                Name
+              </Label>
+              <Input
+                id="setup-name"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                placeholder="Enter your name"
                 style={{ fontFamily: 'Lexend, sans-serif' }}
-              >
-                Get Started
-              </Button>
+              />
             </div>
-          </DialogContent>
-        </Dialog>
+            <div>
+              <Label htmlFor="setup-email" className="dark:text-foreground" style={{ fontFamily: 'Lexend, sans-serif', marginBottom: '12px' }}>
+                Email
+              </Label>
+              <Input
+                id="setup-email"
+                type="email"
+                value={tempEmail}
+                onChange={(e) => setTempEmail(e.target.value)}
+                placeholder="Enter your email"
+                style={{ fontFamily: 'Lexend, sans-serif' }}
+              />
+            </div>
+            <Button
+              onClick={handleFirstTimeSubmit}
+              disabled={!tempName.trim() || !tempEmail.trim()}
+              className="w-full bg-[#86b19c] hover:bg-[#6d9a84] dark:bg-primary dark:hover:bg-primary/90"
+              style={{ fontFamily: 'Lexend, sans-serif' }}
+            >
+              Get Started
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
